@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261017-10">
-<script src="sien-study.js?v=20261017-10"></script>
-<script src="sien-render.js?v=20261017-10"></script>
+<link rel="stylesheet" href="sien.css?v=20261017-11">
+<script src="sien-study.js?v=20261017-11"></script>
+<script src="sien-render.js?v=20261017-11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -360,26 +360,6 @@ input:focus,select:focus{border-color:var(--accent);}
    ⚠ 되살릴 생각이면 JS의 `pausedMs += FLY_MS` 보정도 **반드시 같이** 살려라 — 연출 시간이
    응답 시간으로 새어 들어간다(로그가 정본이다). 한쪽만 넣으면 로그가 조용히 오염된다. */
 
-/* ── 스와이프 채점 피드백 (2026-08-24 삼세번) ──
-   🔴 이력 — ① 카드 자신의 테두리 글로우+카드 안 라벨 → ② 화면 좌·우 가장자리에 세운 색 띠와
-   「알맞음/다시」 라벨(사이드바를 비키느라 오른쪽 물림 변수까지 달고 다녔다). 동하가 둘 다 접음:
-   「일단 라벨도 떼버리고, 순수 스와이프만 남겨. 그 뒤에 카드 배경색(카드 안쪽 색 말고,
-   카드 주변 배경, 배경 전체 말고)만 바뀌는 식으로 해보자」(2026-08-24). 띠·라벨·물림 변수를
-   통째로 걷어냈다. 카드가 손가락을 따라가는 것(고무줄 포함)·취소 스프링·즉시 채점은 그대로다.
-   지금 피드백은 딱 하나 — 카드를 감싸는 마당(#cardZone)의 배경이 미는 방향의 색으로 은은하게
-   물든다. 카드 안쪽(#card의 surface)도, 화면 전체(body)도 아니다. 왼쪽=알맞음(--good),
-   오른쪽=다시(--again). ::before 한 장을 깔고 gMove가 --zone-c(색)·--zone-a(진하기)만 매 프레임
-   넣는다 — 레이아웃을 다시 재는 속성은 없다. 진하기는 임계까지 0→.13(--good-dim의 알파 수준),
-   임계를 넘으면 .24로 한 단계 또렷 — 최대여도 원색의 1/4, 은은함이 상한이다.
-   모서리 18px = 각진 마당이 통째로 물들면 phaseLine·채점바와 모서리가 부딪혀 「판」처럼 보인다 —
-   살짝 굴려 「카드 주변만 물든」 그림으로. 사이드바(#rail)와는 겹칠 일이 없다: #cardZone은
-   #main 열 안이고, 인라인 사이드바 구간에서 #rail은 fixed로 그 열 밖에 떠 있다. */
-#cardZone::before{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;
-  background:var(--zone-c,transparent);opacity:var(--zone-a,0);
-  /* 전이는 손을 떼고 물이 빠질 때만 — 끄는 중(.tinting)에 걸리면 손가락보다 늦게 따라와 출렁인다.
-     채점되어 카드가 갈릴 때는 이 페이드도 없어야 한다(swTintOff(true) — 다음 카드 위에 남는다). */
-  transition:opacity .2s ease-out;}
-#cardZone.tinting::before{transition:none;}
 #cardScroll{overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;}
 /* 넘칠 때만 가장자리를 흐린다(UI 리뷰 U1 — iOS는 스크롤바를 숨겨 잘린 줄이 「끝」처럼 보였다). 끝까지 내리면 아래 페이드가 사라진다. */
 #cardScroll.fade-b{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 28px),transparent);}
@@ -2574,7 +2554,6 @@ setTimeout(function(){
     <!-- 풀이 -->
     <div class="scr" id="scrSolve">
       <div id="cardZone">
-        <!-- 스와이프 피드백은 이 마당의 배경(::before)이 전부다 — CSS 「스와이프 채점 피드백」 절. 왼쪽 = 알맞음, 오른쪽 = 다시. -->
         <!-- 🔴 디자인 이식 09-24: 카드 = 위아래 반반. 답면 내용은 **앞면에서도 미리 채워 visibility:hidden**으로 깔고 가림 면으로 덮는다 →
              앞면↔답면에서 질문·선·버튼이 1px도 안 움직인다(디자인_언어 §1-1 · §7.1). 가림은 visibility라 글자가 선택·낭독되지 않는다. -->
         <div id="card">
@@ -3060,8 +3039,7 @@ setTimeout(function(){
             <p><b>제스처</b></p>
             <table class="hp-t">
               <tr><td>카드 탭</td><td>답 공개 · 답면에서 다시 탭하면 앞면. <b>카드 둘레 여백을 짚어도 돼요</b> — ⚙설정에서 끌 수 있어요</td></tr>
-              <tr><td>카드 위 좌우 스와이프</td><td>채점(<b>왼쪽으로 밀면 알맞음 · 오른쪽으로 밀면 다시</b>) — ⚙설정에서 켜야 해요.
-                자주 쓰는 알맞음이 손에 편한 방향이에요</td></tr>
+              
               <tr><td><b>왼쪽 가장자리에서 오른쪽</b></td><td>뒤로. 풀이 화면에서는 세션 화면으로.
                 화면 맨 왼쪽 끝에서 시작할 때만이라 카드 채점과 섞이지 않아요</td></tr>
             </table>
@@ -3478,7 +3456,6 @@ setTimeout(function(){
     <div class="tgl-row"><span>채점 버튼에 다음 간격</span><div class="tgl" id="cfgIv"></div></div>
     <div class="tgl-row"><span>「다시」 카드 한 번 더</span><div class="tgl" id="tglReshow"></div></div>
     <div class="tgl-row"><span>여백 눌러도 정답 보기</span><div class="tgl" id="tglZtap"></div></div>
-    <div class="tgl-row"><span>스와이프 채점</span><div class="tgl" id="tglSwipe"></div></div>
     <div class="tgl-row"><span>키보드 단축키</span><div class="tgl" id="tglKbd"></div></div>
   </div>
   <div class="field"><label>스터디</label>
@@ -5578,7 +5555,7 @@ let MAIN_FALLBACK=false;
 const ORPH_DAYS=3;                        // 카드가 사라져 보여도 이 날수만큼은 마크·되짚기를 지우지 않는다 (재생성 일시 부재 대비)
 const K_REST='cards_rest_v1', K_CFG='cards_cfg_v1', K_DIRTY='cards_dirty_v1', K_ORPH='cards_orph_v1',
       K_THEME='cards_theme_v1', K_PRESETS='cards_presets_v1',
-      K_DATA='cards_data_cache_v1', K_SWIPE='cards_swipe_v1', K_INTAKE='cards_intake_v1',
+      K_DATA='cards_data_cache_v1', K_INTAKE='cards_intake_v1',
       K_ZTAP='cards_zonetap_v1',          // 카드 마당 전체 탭 (기본 켜짐 · 09-07 동하 요청)
       K_RESHOW='cards_reshow_v1',         // 「다시」 당일 재출 (기본 꺼짐 — 동하가 09-11 인강 끝나고 켠다)
       K_RESUME='cards_resume_v1',        // 회독본 갔다 돌아올 자리 (세션·카드·답면 · 오늘 것만)
@@ -10203,136 +10180,7 @@ $('gGood').onclick=()=>rate(3); $('gEasy').onclick=()=>rate(4);
 $('btnUndo').onclick=()=>{ if(tooSoon()) return; doUndo(); };   // 카드 바뀐 직후 더블탭
 const lac=$('lastActionChip'); if(lac) lac.onclick=(e)=>{ e.stopPropagation(); if(tooSoon()) return; doUndo(); };
 $('btnHome').onclick=()=>{ push(); go('scrHome'); };
-let swipeOn = lsGet(K_SWIPE)==='1';
-/* 스와이프 채점 — 터치(iPad)·마우스(PC) 입력을 하나의 제스처 로직으로.
-   포인터 이벤트는 iOS에서 스크롤 판정 때 가로 드래그가 pointercancel로 잘리는 일이 있어 쓰지 않는다. */
-/* 🔴 방향 매핑 (2026-08-24 반전, 동하 근거: 「왼쪽에서 오른쪽으로 당기는게 더 힘드니까」)
-   오른쪽으로 밀기(dx>0) = 다시(1) — 손에 힘든 방향이라 드물고 신중해야 할 쪽에 준다.
-   왼쪽으로 밀기(dx<0)  = 알맞음(3) — 편한 방향이라 하루 수백 번 나오는 쪽에 준다.
-   ⚠ 이 매핑은 gEnd의 채점 호출·열거 카드 X 차단·gMove의 배경색·도움말·설정 토글 라벨에
-   흩어져 있다. 한 군데만 고치면 앱이 거짓말을 한다. 바꿀 땐 전부 같이 바꿔라. */
-const SW_MIN=64;                     // 채점으로 인정하는 가로 거리
-const NAV_EDGE=32;                   // 왼쪽 가장자리 띠 = 뒤로가기 몫 (채점 스와이프는 여기서 시작하지 않는다)
-/* 🔴 방향 반전으로 「오른쪽으로 밀기 = 다시」와 「왼쪽 가장자리에서 오른쪽으로 밀기 = 뒤로가기」가
-   같은 방향이 됐다. 지금 갈라 주는 건 오직 NAV_EDGE뿐이다 — gStart가 x<=NAV_EDGE면 채점 제스처를
-   시작조차 하지 않아 왼쪽 32px 띠는 통째로 뒤로가기 몫이다. 이 분기를 지우면 「다시」가
-   뒤로가기를 삼킨다(또는 그 반대). 건드리지 마라. */
-/* 🔴 이력 — 여기 `const FLY_MS=200`이 있었다. 채점이 떨어지면 카드를 화면 밖으로 날려 보내는
-   연출 시간이었고, CSS `#card.flying` 전이와 같은 값이어야 했으며, swFly가 끝에서
-   `pausedMs += FLY_MS`로 그 시간을 응답 시간에서 되돌려 놨다. 동하: 「날아가는 애니메이션은
-   없으면 좋겠어」(2026-08-24) → 연출·상수·보정을 **한꺼번에** 지웠다.
-   ⚠ 다시 넣을 사람에게: 셋은 한 몸이다. 연출만 넣고 pausedMs 보정을 빼면 응답 시간이 연출만큼
-   길게, 보정만 넣고 연출을 빼면 짧게 기록된다. 어느 쪽이든 로그가 조용히 거짓말을 한다. */
-const SW_FREE=110;                   // 여기까지는 손가락을 1:1로 따라간다
-const SW_RUB=140;                    // 그 너머는 점근 감쇠 — 아무리 밀어도 SW_FREE+SW_RUB(=250)에 수렴
-/* 🔴 예전엔 170px에서 하드 클램프였다. 손가락은 계속 가는데 카드가 딱 서니 「걸리는」 느낌이 난다 —
-   iOS는 그렇게 멈추지 않는다(동하: 「넘기는 감각? 그게 그냥 좀 별로야」). 넘어간 만큼 o에 대해
-   o*c/(o+c)로 점점 덜 움직이는 고무줄로 바꿨다. 끝이 없으니 벽에 닿는 순간이 없다. */
-function rubber(dx){
-  const a=Math.abs(dx); if(a<=SW_FREE)return dx;
-  const o=a-SW_FREE;
-  return (dx<0?-1:1)*(SW_FREE + o*SW_RUB/(o+SW_RUB));
-}
-/* 🔴 이력 — 넷째 상태 `gFly`가 있었다(날아가는 중). 연출이 없어져 「채점됐지만 아직 카드가 안 갈린」
-   창 자체가 사라졌으므로 지웠다. 지금 한 카드를 두 번 채점하지 못하게 막는 것은 gX 하나다:
-   swCommit이 첫 줄에서 gX=null을 놓고, gMove·gEnd는 gX==null이면 곧바로 되돌아간다. 즉 채점 직후
-   손가락이 남아 움직여도 다음 카드에는 먹지 않는다(뒤따르는 click은 lastSwipeAt이 따로 막는다). */
-let gX=null, gY=null, gDrag=false;
-/* 배경 물 빼기. instant=true면 전이를 끊은 채로(.tinting 유지) 뺀다 — 카드가 갈리는 순간에 쓰며,
-   안 그러면 빠지는 페이드가 **다음** 카드 위에 남는다. --zone-c는 남긴다(다음 gMove가 첫 프레임에 다시 정한다). */
-function swTintOff(instant){
-  const Z=$('cardZone');
-  if(instant)Z.classList.add('tinting'); else Z.classList.remove('tinting');
-  Z.style.setProperty('--zone-a','0');
-}
-function swReset(){                  // 취소 — 카드가 제자리로 (transition이 되돌려 준다)
-  gX=null; gDrag=false;
-  const c=$('card'); c.classList.remove('dragging'); c.style.transform='';
-  swTintOff();
-}
-/* 채점이 떨어진 스와이프 — **즉시** 채점한다. 연출은 없다(동하 2026-08-24). 밀려 있던 카드를
-   제자리로 돌려놓고 배경 물을 뺀 다음 rate()를 부르면, 버튼으로 채점했을 때와 똑같이 카드가 그냥 갈린다.
-   🔴 되돌릴 때 전이를 한 프레임 끊는다(.snap) — 안 끊으면 밀려 있던 위치에서 **다음** 카드가
-   스르륵 제자리로 미끄러져 들어온다. 배경도 같은 이유로 전이를 끊은 채(swTintOff(true)) 빼고,
-   한 프레임 지나서 .tinting을 뗀다. */
-function swCommit(done){
-  gX=null; gDrag=false;              // 🔴 첫 줄이어야 한다 — 잔여 제스처가 다음 카드에 먹지 않게
-  const c=$('card');
-  c.classList.remove('dragging'); c.classList.add('snap');
-  c.style.transform=''; swTintOff(true); void c.offsetWidth;
-  c.classList.remove('snap'); $('cardZone').classList.remove('tinting');
-  done();
-}
-function gStart(x,y){
-  if(!cur()||!$('scrSolve').classList.contains('on'))return;
-  if(x<=NAV_EDGE) return;   // 가장자리는 뒤로가기 — 좁은 화면에서 카드가 왼쪽 18px까지 오므로 여기서 갈라야 한다
-  gX=x; gY=y; gDrag=false;
-  /* 카드가 **손끝을 축으로** 돈다 — 회전 중심을 잡은 지점에 맞춘다. 그래야 각도가 아주 작아도
-     따라 도는 느낌이 나고, 카드 한가운데를 도는 기계적인 움직임이 안 난다.
-     제스처당 한 번만 재므로 매 프레임 비용이 아니다(gMove에서는 절대 재지 않는다). */
-  const c=$('card'), r=c.getBoundingClientRect();
-  c.style.transformOrigin=`${Math.round(x-r.left)}px ${Math.round(y-r.top)}px`;
-}
-function gMove(x,y,ev){
-  if(gX==null)return;
-  const dx=x-gX, dy=y-gY;
-  if(!gDrag){
-    if(Math.abs(dx)<12||Math.abs(dx)<=Math.abs(dy))return;   // 세로 움직임이면 카드 스크롤에 양보
-    gDrag=true; $('card').classList.add('dragging');
-  }
-  if(ev&&ev.cancelable)ev.preventDefault();                  // 가로 제스처 확정 후에만 막는다
-  if(!swipeOn||!revealed)return;                             // 꺼져 있거나 공개 전이면 따라 움직이지 않음
-  const tx=rubber(dx);                                       // 1:1로 따라가다 편한 범위를 넘으면 고무줄
-  /* 회전은 아주 약하게 — 중심이 손끝이라 이 정도로 충분히 「따라 돈다」(예전 dx/70은 과했다).
-     상한 250px에서도 2.5° 남짓이다. */
-  $('card').style.transform=`translateX(${tx.toFixed(1)}px) rotate(${(tx/100).toFixed(2)}deg)`;
-  /* 🔴 여기는 손가락이 움직일 때마다 불린다. transform·opacity·CSS 변수만 건드린다 —
-     width/left처럼 레이아웃을 다시 재는 속성은 절대 쓰지 않는다(getBoundingClientRect도 금지). */
-  const t=Math.min(1,Math.abs(dx)/SW_MIN), armed=t>=1;       // 임계까지 얼마나 왔나 (0~1)
-  /* 카드 주변 마당(#cardZone)이 미는 방향의 색으로 물든다. 미는 정도에 비례해 옅게(t²로 초반을
-     죽인다), 임계를 넘으면 한 단계 또렷하게 — 「넘었다」가 손 안 보고도 읽힌다. 최대 .24, 은은함이 상한. */
-  const Z=$('cardZone');
-  Z.classList.add('tinting');                                // 끄는 동안은 전이를 끊는다 (손가락보다 늦으면 출렁인다)
-  Z.style.setProperty('--zone-c', dx<0?'var(--good)':'var(--again)');  // 🔴 왼쪽=알맞음, 오른쪽=다시
-  Z.style.setProperty('--zone-a', armed?'.24':(t*t*.13).toFixed(3));
-}
-function gEnd(x,y){
-  if(gX==null)return;
-  const dx=x-gX, dy=y-gY, ax=Math.abs(dx), dragged=gDrag;
-  if(!dragged){ swReset(); return; }
-  lastSwipeAt=Date.now();                                    // 뒤따르는 click이 다음 카드를 선공개하지 않게
-  if(ax<SW_MIN){ swReset(); return; }                        // 살짝 움직인 것 — 아무 말도 하지 않는다
-  /* 🔴 여기부터는 「가로로 충분히 밀었는데 떨어진」 경우다. 조용히 무시하면 「스와이프가 잘 안 먹는다」로만
-     느껴진다 — 왜 취소됐는지 한 줄이라도 대 준다. (동하 보고 2026-08-24)
-     ⚠ dt(제스처 시간) 제한은 뺐다. 느리게·신중히 미는 것도 스와이프다. 속도는 의도와 무관하다.
-     ⚠ dy 한계는 고정 90에서 max(90,|dx|)로 — 엄지는 손목이 축이라 호를 그린다. 크게 밀수록 dy도
-       커지는데 90 고정이면 크게 민 스와이프일수록 더 잘 떨어졌다. 세로 오작동은 안 는다:
-       gMove 잠금(|dx|>|dy|)을 통과한 제스처만 여기까지 온다. */
-  if(Math.abs(dy)>Math.max(90,ax)){ swReset(); toast('너무 비스듬해요 — 옆으로 곧게 밀어요'); return; }
-  if(!swipeOn){ swReset(); toast('스와이프 채점이 꺼져 있어요 — 홈 설정에서 켜요'); return; }
-  if(!revealed){ swReset(); toast('정답부터 확인해요 — 카드를 탭'); return; }
-  /* 열거 카드에서 X를 하나라도 찍었으면 「알맞음」 쪽을 막는다. 🔴 알맞음은 이제 dx<0(왼쪽)이다 —
-     방향 반전 때 이 조건을 같이 안 뒤집으면 정반대를 막게 된다. */
-  if(dx<0 && itemMarks.some(Boolean)){ swReset(); toast('빠뜨린 항목이 있어요 — 오른쪽으로 밀면 「다시」'); return; }
-  swCommit(()=>{ if(dx<0)rate(3); else rate(1); });          // 왼쪽=알맞음, 오른쪽=다시
-}
-(()=>{ const c=$('card');
-  c.addEventListener('touchstart',e=>{ if(e.touches.length!==1){ swReset(); return; }
-    gStart(e.touches[0].clientX, e.touches[0].clientY); },{passive:true});
-  c.addEventListener('touchmove',e=>{ if(e.touches.length!==1)return;
-    gMove(e.touches[0].clientX, e.touches[0].clientY, e); },{passive:false});
-  c.addEventListener('touchend',e=>{ const t=e.changedTouches[0]; gEnd(t.clientX, t.clientY); },{passive:true});
-  c.addEventListener('touchcancel',swReset,{passive:true});
-  c.addEventListener('mousedown',e=>{ if(e.button)return;
-    /* 🔴 마우스에서는 「가로로 끌기」가 문면 선택(F3)과 스와이프 채점의 같은 동작이다. 문면 위에서
-       시작한 드래그는 선택 몫으로 넘긴다 — PC엔 1~4 키 채점이 따로 있어 잃는 게 없고, 카드 여백에서
-       시작하면 스와이프는 그대로 먹는다. 터치 경로(touchstart)는 건드리지 않았다: 아이패드에서는
-       애초에 문면이 선택 불가라 충돌이 없고, 거기선 스와이프가 유일한 채점 손동작이다. */
-    if(SEL_OK && e.target.closest && e.target.closest(SEL_ZONE))return;
-    gStart(e.clientX,e.clientY); });
-  window.addEventListener('mousemove',e=>{ if(gX!=null)gMove(e.clientX,e.clientY,null); });
-  window.addEventListener('mouseup',e=>{ if(gX!=null)gEnd(e.clientX,e.clientY); });
-})();
+const NAV_EDGE=32; // Edge navigation is independent from answer buttons.
 
 /* ═══════════════ 가장자리 스와이프 = 뒤로 (동하 요청 2026-08-21) ═══════════════
    왼쪽 가장자리에서 오른쪽으로 밀면 홈으로 돌아간다.
@@ -12094,7 +11942,6 @@ function renderHome(){
   $('tglReshow').classList.toggle('on',reshowOn);
   $('tglZtap').classList.toggle('on',zoneTapOn);
   $('scrSolve').classList.toggle('ztap',zoneTapOn);
-  $('tglSwipe').classList.toggle('on',swipeOn);
   $('tglKbd').classList.toggle('on',kbdOn);
   renderToday();
   snapAllCharts($('todayBox'));   // 주간 미니 막대 정수 폭
@@ -13110,7 +12957,6 @@ $('btnBackup').onclick=()=>{   // 파일이 나뉜 뒤로는 한 덩어리로 �
 $('btnSetup').onclick=openSetup;
 if($('btnExportAllApkg')) $('btnExportAllApkg').onclick=()=>exportDeckApkg(null);
 if($('btnExportAllApkgTop')) $('btnExportAllApkgTop').onclick=()=>exportDeckApkg(null);
-$('tglSwipe').onclick=()=>{ swipeOn=!swipeOn; lsSet(K_SWIPE,swipeOn?'1':'0'); $('tglSwipe').classList.toggle('on',swipeOn); };
 $('tglReshow').onclick=()=>setReshow(!reshowOn, Date.now(), false);   // 기기 간 동기 — sessFile로 올라간다
 $('tglZtap').onclick=()=>{ zoneTapOn=!zoneTapOn; lsSet(K_ZTAP,zoneTapOn?'1':'0');
   $('tglZtap').classList.toggle('on',zoneTapOn); $('scrSolve').classList.toggle('ztap',zoneTapOn); };
@@ -18941,12 +18787,12 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261017-10"></script>
-<script src="sien-learning.js?v=20261017-10"></script>
-<script src="sien-keys.js?v=20261017-10"></script>
-<script src="sien-pokes.js?v=20261017-10"></script>
-<script src="sien-network.js?v=20261017-10"></script>
-<script src="sien-app.js?v=20261017-10"></script>
-<script src="sien-embed.js?v=20261017-10"></script>
+<script src="sien-sm2.js?v=20261017-11"></script>
+<script src="sien-learning.js?v=20261017-11"></script>
+<script src="sien-keys.js?v=20261017-11"></script>
+<script src="sien-pokes.js?v=20261017-11"></script>
+<script src="sien-network.js?v=20261017-11"></script>
+<script src="sien-app.js?v=20261017-11"></script>
+<script src="sien-embed.js?v=20261017-11"></script>
 </body>
 </html>
