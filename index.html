@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261016-4">
-<script src="sien-study.js?v=20261016-4"></script>
-<script src="sien-render.js?v=20261016-4"></script>
+<link rel="stylesheet" href="sien.css?v=20261016-5">
+<script src="sien-study.js?v=20261016-5"></script>
+<script src="sien-render.js?v=20261016-5"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -2837,30 +2837,12 @@ setTimeout(function(){
     <div class="scr" id="scrInput">
       <div class="sub-head"><button class="tb-btn" id="inputBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><div class="sub-title">입력 배치</div></div>
       <div class="sub-body"><div class="sub-inner">
-        <div class="h-sec">게임패드</div>
-        <p class="desc" style="margin:0 2px 8px;font-size:12px;color:var(--mute);line-height:1.6">컨트롤러는 <b>D 모드</b>로 붙여요(설정 &gt; 일반 &gt; 게임 컨트롤러에 뜨면 됨). 키보드 모드와 달리 앱 전환 뒤에도 그대로 먹어요.
-          바꾸려면 「누르기」를 누른 뒤 원하는 버튼을 누르세요. 배치는 이 기기에만 저장돼요.</p>
-        <div class="desc" id="padStatus" style="margin:0 2px 8px"></div>
-        <div id="padMap"></div>
-        <div style="display:flex;gap:8px;margin-top:10px"><button class="ym-btn ghost" id="padReset" style="flex:1">기본 배치로</button></div>
-        <div class="h-sec" style="margin-top:22px">키보드 & 컨트롤러 단축키 안내</div>
-        <div class="kbd-note" style="line-height:1.8">
-          <p style="margin:0 0 6px;font-size:12px;color:var(--ink);font-weight:700">기본 키보드</p>
-          <kbd>Space</kbd> / <kbd>C</kbd> 정답 공개 → 한 번 더 알맞음<br>
-          <kbd>Z</kbd>(다시) · <kbd>X</kbd>(어려움) · <kbd>C</kbd>(알맞음) · <kbd>V</kbd>(쉬움) · <kbd>1</kbd>~<kbd>4</kbd>도 지원<br>
-          재출 카드: <kbd>Z</kbd>(다시) · <kbd>C</kbd>(통과)<br>
-          <p style="margin:10px 0 6px;font-size:12px;color:var(--ink);font-weight:700">8BitDo / 키보드 모드 패드</p>
-          <kbd>A</kbd> 다시 · <kbd>B</kbd> 어려움 · <kbd>Y</kbd> 알맞음 · <kbd>X</kbd> 쉬움 (재출 카드: <b>A 다시</b>, <b>B와 X 모두 통과/기억함</b>)<br>
-          <small style="color:var(--mute)">* 정답 공개 전에는 A·B·Y·X 아무 버튼이나 누르면 정답이 공개돼요.</small><br>
-          <p style="margin:10px 0 6px;font-size:12px;color:var(--ink);font-weight:700">방향키 (화살표)</p>
-          <kbd>↑</kbd> 다시 · <kbd>→</kbd> 어려움 · <kbd>↓</kbd> 알맞음(재출: 통과) · <kbd>←</kbd> 쉬움<br>
-          <small style="color:var(--mute)">* 정답 공개 전에는 방향키 누르면 정답이 공개돼요.</small><br>
-          <p style="margin:10px 0 6px;font-size:12px;color:var(--ink);font-weight:700">기타 기능</p>
-          <kbd>R</kbd> 되돌리기 · <kbd>Shift+B</kbd> 내일로 · <kbd>Q</kbd> 카드 끄기 · <kbd>F</kbd> 플래그 ·
-          <kbd>S</kbd> 일시정지 · <kbd>T</kbd> 초성 힌트 · <kbd>Esc</kbd> 닫기 → 홈 · <kbd>/</kbd> 목록 검색<br>
-          <kbd>Ctrl</kbd>+<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 플래그 라벨(중요 · 핵심 · 재확인 · 보충)<br>
-          <small style="color:var(--mute)">* 한글 입력 상태에서도 자판 자리로 정상 인식됩니다.</small>
-        </div>
+        <div class="h-sec">키보드 단축키</div>
+        <p class="desc">「변경」을 누르고 원하는 키를 입력하세요. 기존 보조 키도 함께 교체됩니다.<br>한글 입력 상태에서도 같은 자판으로 동작합니다. 설정은 이 브라우저에 저장됩니다.</p>
+        <p id="sienKeyStatus" role="status" aria-live="polite"></p>
+        <div id="keyboardMap"></div>
+        <button class="ym-btn ghost" id="keyboardReset" style="width:100%;margin-top:20px">기본 키 배치로 복원</button>
+        <p class="kbd-note" style="margin-top:16px">앞면에서 채점 키를 누르면 먼저 정답을 보여줍니다. 입력란에서 글을 쓰는 중에는 단축키가 동작하지 않습니다.</p>
       </div></div>
     </div>
     <div class="scr" id="scrHelp">
@@ -2882,7 +2864,7 @@ setTimeout(function(){
    ↓  투입 계획(수강일 순서)
 <b>세션</b>이 오늘치를 꺼냄   ← 「무엇을(범위) × 어떻게(방식)」
    ↓  채점 4단계
-<b>복습일</b>이 정해짐(FSRS) ← 그날이 오면 <b>due</b>
+<b>복습일</b>이 정해짐(SM-2) ← 그날이 오면 <b>due</b>
    ↓
 다시 세션에 실림</pre>
             <p><b>기억할 두 축</b> — 카드는 <b>신규</b>(한 번도 안 푼 것) 아니면 <b>복습</b>(복습일이 된 것)이에요.
@@ -2939,29 +2921,12 @@ setTimeout(function(){
           </div>
         </details>
 
-        <details class="hp" id="hp4"><summary>복습일 — due는 어떻게 정해지나</summary>
-          <div class="hpb">
-            <p>채점하면 <b>FSRS</b>라는 알고리즘이 그 카드의 <b>안정도</b>(얼마나 오래 기억에 남는지)와
-            <b>난이도</b>를 갱신하고, 다음 복습일을 잡아요.</p>
-            <table class="hp-t">
-              <tr><td>다시</td><td>못 떠올림 → 안정도가 깎이고 <b>곧</b> 다시 나와요</td></tr>
-              <tr><td>어려움</td><td>떠올렸지만 힘들었음 → 조금만 늘어나요</td></tr>
-              <tr><td>알맞음</td><td>적당히 떠올림 → 표준으로 늘어나요</td></tr>
-              <tr><td>쉬움</td><td>너무 쉬웠음 → 많이 늘어나요</td></tr>
-            </table>
-            <p>채점 버튼 아래 작게 뜨는 <b>「3일」·「1.2개월」</b>이 <b>그걸 누르면 언제 다시 나오는지</b>예요.</p>
-            <p class="hp-key">그 날짜가 오늘이 되면 그 카드가 <b>due</b>(복습 예정)입니다. 「일일 복습」이 매일 꺼내는 게 이거예요.</p>
-            <p><b>규칙 네 개</b></p>
-            <table class="hp-t">
-              <tr><td>그날 첫 채점만</td><td>같은 카드를 하루에 여러 번 매겨도 <b>첫 번째만</b> 복습일에 반영돼요. 같은 날 반복은 안정도를 왜곡해서요</td></tr>
-              <tr><td>그날은 한 번만</td><td>한 번 매긴 카드는 그날 다시 안 나와요. 「다시」를 눌러도 마찬가지 — 다음 복습일에 만나요</td></tr>
-              <tr><td>하루 경계 새벽 4시</td><td>밤 12시를 넘겨 푼 것도 <b>그 전날</b>로 칩니다</td></tr>
-              <tr><td>간격 점진 증가</td><td>복습을 거듭할수록 복습 간격이 점진적으로 늘어나 장기 기억에 정착돼요</td></tr>
-            </table>
-            <p><b>풀이 화면 맨 위 한 줄</b>이 그 카드가 왜 지금 나왔는지 말해줘요 —
-            「다음 진도 — 미술 · 감상」 / 「8/19 채점 · 오늘이 복습일」 / 「복습일 8/18 — 2일 지남」.</p>
-          </div>
-        </details>
+        <details class="hp" id="hp4"><summary>복습일 — Anki SM-2</summary><div class="hpb">
+          <p>기존 카드와 학습 기록, 다음 복습일은 유지합니다. 새 답변부터 Anki 방식의 SM-2로 계산합니다.</p>
+          <p>새 카드는 1분 → 10분 단계를 거쳐 1일 뒤 복습으로 넘어갑니다. 처음부터 「쉬움」이면 4일 뒤입니다. 복습 카드에서 「다시」를 누르면 10분 재학습으로 들어갑니다.</p>
+          <p>복습 카드의 간격은 현재 간격, 카드별 학습 계수, 지연 일수와 답변에 따라 달라집니다. 모든 답변이 일정에 반영되며 같은 날에도 학습 단계가 진행됩니다. 날짜 경계는 새벽 4시입니다.</p>
+          <p>버튼 아래에는 해당 답변의 다음 간격이 표시됩니다. 학습할 다른 카드가 없으면 다음 단계까지 남은 시간이 표시되며, 나갔다 돌아와도 단계가 유지됩니다.</p>
+        </div></details>
 
         <details class="hp" id="hp5"><summary>방향 분산 — 왜 어떤 카드는 며칠 뒤에 오나</summary>
           <div class="hpb">
@@ -3105,22 +3070,9 @@ setTimeout(function(){
               <tr><td><b>왼쪽 가장자리에서 오른쪽</b></td><td>뒤로. 풀이 화면에서는 세션 화면으로.
                 화면 맨 왼쪽 끝에서 시작할 때만이라 카드 채점과 섞이지 않아요</td></tr>
             </table>
-            <p><b>키보드 · 게임패드 (⚙설정 「키보드 단축키」가 켜져 있어야 해요 — 기본 켜짐)</b></p>
-            <p>블루투스 컨트롤러(8BitDo Micro 같은 것)를 <b>키보드 모드</b>로 붙이면 버튼이 곧 키예요. 아래 표대로 버튼에 키를 배정하면 돼요.
-              <b>한글 입력 상태여도 먹어요</b> — 글자가 아니라 자판 자리로 읽습니다.</p>
-            <table class="hp-t">
-              <tr><td><b>8BitDo / 패드 (A B Y X)</b></td><td><b>A 다시 · B 어려움 · Y 알맞음 · X 쉬움</b> (답 공개 전엔 아무 버튼이나 누르면 공개)</td></tr>
-              <tr><td><b>방향키 (↑ → ↓ ←)</b></td><td><b>↑ 다시 · → 어려움 · ↓ 알맞음 · ← 쉬움</b> (답 공개 전엔 정답 공개)</td></tr>
-              <tr><td><b>재출 카드</b></td><td>다시: <b>Z · A · ↑</b> / 통과(기억함): <b>C · B · X · Y · ↓</b> (B, X 둘 다 통과 가능)</td></tr>
-              <tr><td>Space · Enter · C</td><td>답 공개 → 한 번 더 누르면 <b>알맞음</b></td></tr>
-              <tr><td>1 2 3 4 / Z X C V</td><td>다시 / 어려움 / 알맞음 / 쉬움</td></tr>
-              <tr><td>R · Shift+B · Q</td><td>되돌리기(Revert) · 내일로(Shift+B) · <b>끄기</b>(Quit)</td></tr>
-              <tr><td>F · S · T</td><td>플래그(Flag) · 일시정지(Stop) · 초성 힌트(Tip)</td></tr>
-              <tr><td><b>Ctrl + 1 2 3 4</b></td><td><b>플래그 라벨</b> — 중요 / 핵심 / 재확인 / 보충.
-                사이드바를 안 열어도 붙고, 라벨을 붙이면 플래그도 켜져요. 같은 키를 다시 누르면 해제</td></tr>
-              <tr><td>Esc · /</td><td>닫기(열린 것이 없으면 홈) · 목록 검색 — 옛 키 U·O·P·H도 그대로 먹어요</td></tr>
-            </table>
-            <p>⚠ Ctrl+1~4 말고 다른 조합키(Cmd·Alt 등)는 브라우저 몫이라 앱이 안 받아요. 컨트롤러엔 <b>낱개 키</b>로 배정하세요.</p>
+            <p><b>키보드</b> — 설정 → 입력 배치에서 원하는 키로 바꿀 수 있습니다.</p>
+            <p>기본값은 Space/Enter로 정답 보기, 1~4 또는 Z/X/C/V로 다시·어려움·알맞음·쉬움입니다. R은 되돌리기, S는 일시정지, ↑/↓는 스크롤입니다. 학습과 재학습 모두 네 가지 답변을 사용합니다.</p>
+            <p>키를 변경하면 화면의 키 안내도 바뀝니다. 같은 키를 두 동작에 배정할 수 없고, 입력란에서는 학습 단축키가 동작하지 않습니다. 설정은 현재 브라우저에 저장됩니다.</p>
             <p><b>되돌리기</b>가 정확히 무엇을 되돌리는지는 위 <b>「되돌리기」</b> 절에 있어요.</p>
           </div>
         </details>
@@ -3129,7 +3081,7 @@ setTimeout(function(){
           <div class="hpb">
             <table class="hp-t">
               <tr><td>신규</td><td>한 번도 채점된 적 없는 카드</td></tr>
-              <tr><td>due · 복습 예정</td><td>FSRS가 잡은 복습일이 오늘이거나 지난 카드</td></tr>
+              <tr><td>due · 복습 예정</td><td>복습일이 오늘이거나 지난 카드</td></tr>
               <tr><td>단위 · 대주제</td><td>회독·투입·인출의 공통 덩어리. <span class="hp-n-units">…</span>개</td></tr>
               <tr><td>중주제</td><td>대주제 안의 묶음. 단위 행의 <b>▸</b>로 펼쳐 볼 수 있어요</td></tr>
               <tr><td>전방 / 역방향</td><td>개념명→내용 / 내용→개념명</td></tr>
@@ -3273,7 +3225,7 @@ setTimeout(function(){
       <input id="deckOptNewLimit" type="number" min="0" max="9999" style="width:100%;font-size:15px;" placeholder="20">
       <span style="font-size:13px;color:var(--c-sec);flex-shrink:0;">장</span>
     </div>
-    <div style="font-size:11.5px;color:var(--c-ter);margin-top:4px;">하루에 처음으로 공부할 새로운 카드의 최대 수량 (Anki 기본: 20장)</div>
+    <div style="font-size:11.5px;color:var(--c-ter);margin-top:4px;">하루에 처음으로 공부할 새로운 카드의 최대 수량 (기본: 40장)</div>
   </div>
 
   <div class="field" style="margin-bottom:14px;">
@@ -3285,7 +3237,7 @@ setTimeout(function(){
       <input id="deckOptReviewLimit" type="number" min="0" max="99999" style="width:100%;font-size:15px;" placeholder="200">
       <span style="font-size:13px;color:var(--c-sec);flex-shrink:0;">장</span>
     </div>
-    <div style="font-size:11.5px;color:var(--c-ter);margin-top:4px;">하루에 복습할 최대 만기 카드 수량 (Anki 기본: 200장)</div>
+    <div style="font-size:11.5px;color:var(--c-ter);margin-top:4px;">하루에 복습할 최대 만기 카드 수량 (기본: 400장)</div>
   </div>
 
   <div class="field" style="margin-bottom:16px;">
@@ -3534,7 +3486,7 @@ setTimeout(function(){
     <div id="scBox"></div>
   </div>
   <div class="field"><label>그 밖</label>
-    <button class="act-btn" id="setInput"><span>입력 배치</span><small>키보드 · 게임패드</small></button>
+    <button class="act-btn" id="setInput"><span>입력 배치</span><small>키보드 키 변경</small></button>
     <button class="act-btn" id="setHelp" style="margin-top:8px"><span>도움말</span></button>
   </div>
   <div class="field"><label>저장 및 내보내기</label>
@@ -6125,9 +6077,8 @@ function normalizeCard(c){
   if(!c.unit) c.unit = c.subj || '기본 덱';
   return c;
 }
-function isDue(c){ if(!c) return false; normalizeCard(c); const s=state.cards[c.id];
-  if(!(s && s.fsrs && !s.retired)) return false;
-  return effDueKey(dayKey(new Date(s.fsrs.due)), c.id) <= todayKey(); }   // 휴식일 분산 반영
+function isDue(c){return !!c && SienSM2.due(state.cards[c.id]);}
+
 function isNew(c){ if(!c) return false; normalizeCard(c); const s=state.cards[c.id]; return !s || (!s.fsrs && !s.retired); }
 function isWeak(c){ const s=state.cards[c.id]; if(!s||s.retired) return false;
   return (s.fsrs && s.fsrs.reps>=2 && s.fsrs.stability<7) || s.miss>=2; }
@@ -8592,12 +8543,8 @@ function scopeOf(c){
     return (m && m[1].startsWith(s2) && m[1].length>s2.length) ? m[1] : s2; }
   return m?m[1]:(c.subj||'');   // node가 얕으면 옛 방식
 }
-function settledToday(c){         // 오늘 처리 끝난 카드 = 오늘 한 번이라도 채점됐다
-  /* 2026-08-21 이전에는 「마지막 채점이 다시가 아님」이었다. 「다시」를 누르면 그날 10장 뒤에
-     다시 나오는 규칙이 있었기 때문. 재출을 없애면서 정의도 단순해졌다 —
-     재출 채점은 일정에 반영되지 않아(「기록만」) 누를 이유가 없는 버튼이었다. */
-  return todayRatings()[c.id]!==undefined;
-}
+function settledToday(c){const s=state.cards[c.id];return !!s?.fsrs&&!SienSM2.learning(s)&&!SienSM2.due(s);}
+
 /* 🔴 **미룸도 같이 거른다**(09-01 감사 🟡6). 「내일로」를 사이드바에서 누르면 `removeCurFromQueue`가
    화면·저장 큐를 정리하지만, **목록·상세의 「내일로」는 마크만 단다.** 그래서 이미 담긴 큐에 그 카드가
    있으면 그날 그대로 다시 나왔다 — 「미룸 = 오늘 큐에서 빼기」가 진입 경로마다 다르게 굴었다.
@@ -9535,6 +9482,7 @@ function showHoedokLink(c){
   el.innerHTML = '';
 }
 function showCard(){
+  if(!SienLearning.prepare())return;
   $('card').classList.remove('rev');
   /* 🔴 오늘 정리된 카드는 어떤 경로로 큐에 남아 있든 화면에 안 띄운다 — 규칙의 마지막 관문.
      큐 조립 때(playSess·buildQueue)만 거르면 샌다: 세션 순서·설정을 바꾸면 저장 큐가
@@ -9588,6 +9536,7 @@ function showCard(){
   try{ renderLastActionChip(); }catch(e){}
   try{ renderLineDots(); }catch(e){}
   $('cardScroll').scrollTop=0;
+  SienKeys.hints();
   saveResume();                  // 회독본 갔다 돌아올 자리 (앞면 상태)
 }
 /* 🔴 **공개 직후의 채점은 버린다** (동하 09-11 「키보드 실수로 연타하는 거 막는 장치 있어?」).
@@ -9781,17 +9730,12 @@ function reviewDelay(due,now){
   return days<30?days+'일 후':days<365?(days/30.4).toFixed(1)+'개월 후':(days/365.25).toFixed(1)+'년 후';
 }
 function intervalsPreview(c){
-  const s=st(c.id),now=new Date(Math.round(Date.now()/1000)*1000);
-  const fc=s.fsrs?fsrsRevive(s.fsrs):FSRS.createEmptyCard(now);
-  const repeat=s.d===dayKey(now)||!!c._re||!!curSess?.asRe;
+  const now=new Date(Math.round(Date.now()/1000)*1000);
   for(const [num,lab]of [[1,'giAgain'],[2,'giHard'],[3,'giGood'],[4,'giEasy']]){
-    try{
-      if(repeat){$(lab).textContent=num===1&&reshowOn?'잠시 후':reviewDelay(s.fsrs?.due,now);continue;}
-      const result=engFor(c.id).next(fc,now,RATING[num]);
-      $(lab).textContent=reviewDelay(clampDue(result.card.due,c.id,result.card),now);
-    }catch(e){$(lab).textContent='일정 확인 필요';}
+    try{$(lab).textContent=SienSM2.label(SienLearning.next(c,num,now));}catch(e){$(lab).textContent='일정 확인 필요';}
   }
 }
+
 function rate(num){
   const c=cur(); if(!c||!revealed)return;
   if(Date.now()-revealAt < RATE_MIN_MS) return;   // 공개 직후 연타 — 위 주석
@@ -9803,7 +9747,7 @@ function rate(num){
      「오늘 두 번째」라 FSRS를 건너뛰고, `replayLog()`는 다음 날 첫 채점으로 반영한다(재현 확정 · 실데이터 0건).
      로그가 정본이므로 로그가 쓰는 시각에 날짜를 맞춘다. */
   const s=st(c.id), tk=dayKey(now);
-  const reN=(c._re && (c._day||tk)===tk) ? c._re : 0;   // 0 = 그날 첫 대면 · 1,2,3… = 재출 회차(상한 없음 · 09-22) · 🔴 04시를 넘긴 재출은 새 날 **정식 채점**(리뷰 09-23 R18 — 기록 없이 하루 밀렸다)
+  const reN=0; // All normal and repeat answers use the same four-grade scheduler.
   const hasItems=itemMarks.length>=2, anyX=itemMarks.some(Boolean);
   /* 🔴 재출은 「다시 / 통과」 둘뿐이다 — B(2)나 X(4) 버튼을 눌러도 통과(기억함, 3)로 처리 */
   if(reN && (num===2||num===4)) num = 3;
@@ -9820,14 +9764,9 @@ function rate(num){
              sess:{r:sess.r.slice(), ms:sess.ms, streak:sess.streak, best:sess.best, re:sess.re} };
   undoPush(undoSnap);
   if(firstToday && !reN && curSess){ pgBump(curSess, 1); undoSnap.pg=curSess.id; }   // 진행 막대(09-24) — 되돌리면 doUndo가 -1
-  if(firstToday && !reN){                  // 그날 첫 채점만 FSRS 반영 (재출은 절대 아니다)
-    const fc = s.fsrs?fsrsRevive(s.fsrs):FSRS.createEmptyCard(now);
-    const r=engFor(c.id).next(fc, now, RATING[num]);   // 갈래별 목표율 — replayLog와 같은 문
-    const nc=r.card;
-    nc.due=clampDue(nc.due, c.id, nc);      // 시험날 목표율 클램프
-    s.fsrs=fsrsSerialize(nc); s.d=tk;
-  }                                        // 재출 채점은 로그만 (이중 반영 방지)
-  const extra = {};
+  const result=SienLearning.next(c,num,now);
+  s.fsrs=result.fsrs;s.sm2=result.sm2;s.d=tk;s.u=now.toISOString();
+  const extra={scheduler:'anki-sm2-v1',previousPhase:result.previousPhase,after:{fsrs:result.fsrs,sm2:result.sm2}};
   /* 🔴 열거 카드에서 「통째로 백지」는 **탭 없이 again**이다 (동하 채점 규약).
      그대로 적으면 로그에 `ooo`(전부 맞음) + 등급 1이 남아, 규약을 모르는 눈에는 전부-맞음으로 읽힌다.
      실측 2026-08-23 — items가 붙은 279건 중 **등급1 + 무탭이 71건**. 그 한 경우만 `xxx`로 적는다.
@@ -9858,7 +9797,7 @@ function rate(num){
   }
   /* 「다시」면 같은 세션에서 한 번 더 만난다(설정으로 끈다). 재출에서 또 「다시」면 세션 끝에 한 번 더,
      거기서도 「다시」면 그날은 끝 — 다음 복습일에 만난다(규칙 ③④). */
-  if(reshowOn && num===1) undoSnap.reIns=reInsert(c, reN+1);   // 🔴 상한 없음 — 「다시」를 누르는 한 그날 세션에서 계속 다시 나온다(동하 09-22 「두 번 틀리면 더 안 내는 게 별로 · 그냥 무한으로」 · 3회째부터는 세션 끝에 붙어 통과할 때까지 순환 · 탈출은 「통과」)
+  undoSnap.reIns=SienLearning.insert(c);
   afterRate();   // 채점은 로그가 정본이라 카드 상태로 따로 올릴 것이 없다(옛 `touchRate`는 빈 함수였다 · FX-9)
   if(!reN){ sessionDone++; if(phase==='new')newServed++; }
   qPos++; updateUndo();
@@ -11769,7 +11708,7 @@ function scRenderSolveBadge(){
   const leadCls='sc-badge-lead'+(pokeTarget?' poke':'');
   const leadSpan = leadText ? ` · <span class="${leadCls}">${esc(leadText)}</span>` : '';
   badge.innerHTML=`<span class="${dotCls}"></span><span>온라인 ${nStudy}명</span><span> · ${myCntText}</span>${leadSpan}${stripSvg?` · ${stripSvg}`:''}`;
-  badge.title=pokeTarget ? '클릭하면 찌르기 (패드 R · 하트 ♥)' : '스터디 참여 중';
+  badge.title=pokeTarget ? '클릭하면 찌르기' : '스터디 참여 중';
   badge.style.display='inline-flex';
 }
 let scPokeIdx = 0;
@@ -13203,68 +13142,9 @@ let kbdOn = lsGet(K_KBD)!=='0';
    구현 = 버튼 눌림 가장자리 → **같은 keydown 이벤트를 합성**해 기존 키 처리 한 곳으로 보낸다(규칙 중복 금지 · e.code 그대로 · e.repeat 없음).
    배치는 기기별(localStorage) · 「입력 배치」 화면에서 「누르기 → 버튼」으로 바꾼다. 기본 배치 = 표준 매핑 번호 기준으로 동하 K 모드 배치(구조안내 §7.7)를 옮긴 것 —
    실물 번호가 다르면 화면에서 고친다(#번호가 눌린 버튼을 알려 준다). */
-const K_PAD='cards_pad_v5';
-try{ if(lsGet('cards_pad_v4')) lsSet('cards_pad_v4',''); }catch(e){}
-const PAD_ACTS=[   // [id, 라벨, 합성할 키] — 순서 = 화면 순서
-  ['again','다시 (A)',{code:'KeyA',key:'a'}], ['hard','통과 / 어려움 (B)',{code:'KeyB',key:'b'}],
-  ['good','알맞음 (Y)',{code:'KeyY',key:'y'}], ['easy','통과 / 쉬움 (X)',{code:'KeyX',key:'x'}],
-  ['poke','친구 찌르기 (R · 하트 ♥)',{code:'KeyJ',key:'j'}],
-  ['reveal','답 보기 (Space)',{code:'Space',key:' '}], ['undo','되돌리기 (R2)',{code:'KeyU',key:'u'}],
-  ['bury','내일로 (Shift+B)',{code:'KeyB',key:'b',shiftKey:true}], ['off','끄기 (Q)',{code:'KeyO',key:'o'}], ['hint','첫 글자 힌트 (T)',{code:'KeyT',key:'t'}],
-  ['home','홈 (Esc)',{code:'KeyH',key:'h'}], ['pause','일시정지 (P)',{code:'KeyP',key:'p'}], ['mod','사유 칩 보조키 — 누른 채 채점 버튼 (Ctrl+1~4)',null],
-  ['up','위로 스크롤 (↑)',{code:'ArrowUp',key:'ArrowUp'}], ['down','아래로 스크롤 (↓)',{code:'ArrowDown',key:'ArrowDown'}],
-  ['left','이전 (←)',{code:'ArrowLeft',key:'ArrowLeft'}], ['right','다음 (→)',{code:'ArrowRight',key:'ArrowRight'}]];
-/* 표준 매핑 버튼 번호: 0 A(다시) · 1 B(통과/어려움) · 2 X(통과/쉬움) · 3 Y(알맞음) · 4 L · 5 R(찌르기) · 6 L2 · 7 R2(되돌리기) · 8 Back · 9 Start · 12↑ 13↓ 14← 15→ · 16 홈/하트(찌르기) */
-const PAD_DEF = {again:0, hard:1, easy:2, good:3, poke:5, undo:7, bury:null, off:4, mod:null, pause:8, home:9, up:12, down:13, left:14, right:15, hint:6, reveal:null};
-let padMap=Object.assign({}, PAD_DEF); try{ const j=JSON.parse(lsGet(K_PAD)||'null'); if(j&&typeof j==='object') padMap=Object.assign({}, PAD_DEF, j); }catch(e){}
-let padPrev=[], padSeen=false, padLearn=null, padHoldT=0, padLast=null;
-let _padEv=false;
-function padSynth(act, ctrl){ const a=PAD_ACTS.find(x=>x[0]===act); if(!a||!a[2]) return;
-  _padEv=true; try{ document.dispatchEvent(new KeyboardEvent('keydown', Object.assign({bubbles:true, cancelable:true, ctrlKey:!!ctrl}, a[2]))); } finally{ _padEv=false; } }   // _padEv — 「키보드 단축키」 토글이 게임패드까지 끄지 않게(리뷰 09-23 UX 정리안 결함)
-function padPoll(){
-  try{ const gps=navigator.getGamepads ? navigator.getGamepads() : []; let gp=null; for(const g of gps){ if(g && g.connected){ gp=g; break; } }
-    if(!gp){ if(padSeen){ padSeen=false; padPrev=[]; renderPadUI(); } return; }
-    if(!padSeen){ padSeen=true; renderPadUI(); }
-    const b=gp.buttons, now=Date.now();
-    const down=i=>!!(b[i]&&(b[i].pressed||b[i].value>0.5));
-    const mod=padMap.mod!=null && down(padMap.mod);
-    for(let i=0;i<b.length;i++){ const was=!!padPrev[i], is=down(i);
-      if(is && !was){
-        padLast=i;
-        if(padLearn){ const prevBtn=padMap[padLearn]; const owner=Object.keys(padMap).find(k=>k!==padLearn && padMap[k]===i);   // 🔴 겹침 금지 — 그 버튼을 쓰던 동작과 맞바꾼다(리뷰 09-23 R13: 「쉬움」을 겹쳐 배정하면 「알맞음」이 기록됐다)
-          padMap[padLearn]=i; if(owner){ padMap[owner]=(prevBtn==null?null:prevBtn); const a=PAD_ACTS.find(x=>x[0]===owner); toast('#'+i+' 을(를) 쓰던 「'+(a?a[1]:owner)+'」은 '+(prevBtn==null?'배정 없음':'#'+prevBtn)+'(으)로 옮겼어요'); }
-          padLearn=null; lsSet(K_PAD, JSON.stringify(padMap)); renderPadUI(); padPrev[i]=true; continue; }
-        if(i===padMap.mod){ padPrev[i]=true; continue; }
-        let act=Object.keys(padMap).find(k=>padMap[k]===i && k!=='mod');
-        /* 8BitDo 하트/스타 버튼(10, 11, 16, 17번) 또는 R(5번) 누르면 찌르기(poke) */
-        if(i===10 || i===11 || i===16 || i===17 || i===5 || (padMap.poke!=null && i===padMap.poke)){
-          if(!act || act==='bury' || act==='poke') act='poke';
-        }
-        if(act==='poke'){
-          try{ triggerStudyPoke(); }catch(e){}
-        } else if(act){
-          padSynth(act, mod && ['again','hard','good','easy'].includes(act));
-        }
-        if($('scrInput').classList.contains('on')) renderPadUI();   // 배치 화면에선 「마지막 눌린 #」을 보여 준다
-      }
-      padPrev[i]=is; }
-    if(now-padHoldT>120){ for(const k of ['up','down']){ if(padMap[k]!=null && down(padMap[k]) && padPrev[padMap[k]]){ padSynth(k,false); padHoldT=now; } } }   // 눌러 두면 계속 굴림
-  }catch(e){}
-}
-function padLoop(){ padPoll(); requestAnimationFrame(padLoop); }
-if(navigator.getGamepads){ requestAnimationFrame(padLoop);
-  window.addEventListener('gamepadconnected', ()=>{ padSeen=true; renderPadUI(); toast('게임패드 연결됨'); });
-  window.addEventListener('gamepaddisconnected', ()=>{ padSeen=false; padPrev=[]; renderPadUI(); }); }
-function renderPadUI(){ const box=$('padMap'), st=$('padStatus'); if(!box||!$('scrInput').classList.contains('on')) return;
-  const gps=navigator.getGamepads?[...navigator.getGamepads()].filter(g=>g&&g.connected):[];
-  st.innerHTML = gps.length ? ('<b>연결됨</b> — '+esc((gps[0].id||'').slice(0,48))+' · 버튼 '+gps[0].buttons.length+'개'+(padLast!=null?' · 마지막 눌린 버튼 <b>#'+padLast+'</b>':'')) : ('컨트롤러 없음 — 연결한 뒤 아무 버튼을 한 번 누르면 잡혀요 <small>(API '+(navigator.getGamepads?'있음':'없음')+' · '+(isStandalone()?'홈 화면 앱':'브라우저 탭')+')</small>');
-  box.innerHTML=PAD_ACTS.map(([id,lab])=>'<div class="tgl-row"><span>'+esc(lab)+'</span><span style="display:flex;gap:8px;align-items:center"><b style="min-width:34px;text-align:right">'+(padMap[id]==null?'—':'#'+padMap[id])+'</b><button class="ym-btn ghost" data-padlearn="'+id+'" style="padding:4px 12px;min-height:34px">'+(padLearn===id?'버튼을 누르세요…':'누르기')+'</button></span></div>').join('');
-  box.querySelectorAll('[data-padlearn]').forEach(bt=>bt.onclick=()=>{ padLearn=(padLearn===bt.dataset.padlearn)?null:bt.dataset.padlearn; renderPadUI(); });
-}
-$('padReset').onclick=()=>{ padMap=Object.assign({}, PAD_DEF); lsSet(K_PAD, JSON.stringify(padMap)); padLearn=null; renderPadUI(); toast('기본 배치로'); };
-$('setInput').onclick=()=>{ $('ovlSettings').classList.remove('show'); go('scrInput'); renderPadUI(); };
-$('setHelp').onclick=()=>{ $('ovlSettings').classList.remove('show'); go('scrHelp'); };   // 홈의 ? 버튼은 09-24 은퇴(UX §1 — 도움말은 설정 안으로)
-$('inputBack').onclick=()=>{ padLearn=null; go('scrHome'); $('btnSettings').click(); };
+$('setInput').onclick=()=>{ $('ovlSettings').classList.remove('show'); go('scrInput'); SienKeys.render(); };
+$('setHelp').onclick=()=>{ $('ovlSettings').classList.remove('show'); go('scrHelp'); };
+$('inputBack').onclick=()=>{ SienKeys.cancel(); go('scrHome'); $('btnSettings').click(); };
 /* 키 초점 붙들기(09-16 시도) — 뺐다: iOS가 앱 전환·긴 무입력 뒤 하드웨어 키 대상을 놓는 건 페이지에서 되돌릴 수 없었고(동하 「앱 전환하면 먹통 그대로」),
    화면 밖 앵커는 화면을 옆으로 밀었다. 탭 한 번이면 돌아온다 — 그대로 둔다. */
 /* 🔴 iOS 27 상단 여백 = 안전영역 + 15px (동하 09-16 실측 「블러 문제는 15픽셀 주니까 해결됨」 — 홈 화면 앱에서만 · 브라우저 탭 0).
@@ -13299,120 +13179,7 @@ function scrollBox(){
   const scr=document.querySelector('.scr.on');
   return scr ? (scr.querySelector('.home-wrap, .sub-body') || scr) : null;
 }
-document.addEventListener('keydown',e=>{
-  /* 🔴 조합키는 원래 **통째로** 무시한다 — 브라우저 단축키(Cmd+R·Cmd+F…)를 가로채지 않으려고.
-     딱 하나 연다: **Ctrl+1~4 = 플래그 사유 칩 넷** (동하 09-09 · 게임패드 R을 Ctrl로 두고 쥔다).
-     채점 1~4와 손가락 자리가 같고 Ctrl만 얹는 꼴이라 외울 것이 없다. 그 밖의 조합은 여전히 버린다. */
-  if((!kbdOn && !_padEv) || e.metaKey || e.altKey)return;
-  { const tg=e.target&&e.target.tagName; if(!(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT')) document.documentElement.dataset.keys='on'; }   // 키 표시(09-24)
-  if(!e.ctrlKey && !(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) && typeof ymTodayKey==='function' && (!e.repeat||/^Arrow/.test(e.key)) && ymTodayKey(e)){ e.preventDefault(); return; }
-  if(e.ctrlKey && !/^[1-4]$/.test(keyOf(e)))return;   // 🔴 Ctrl+숫자/키(사유 칩)
-  /* 🔴 **화살표 = 지금 보이는 것의 스크롤** (동하 09-10 실기: 게임패드 D패드로 표 카드를 못 굴렸다).
-     카드 본문은 문서가 아니라 `#cardScroll` 안에서 구른다 — 초점이 아무 데도 없으면 브라우저는
-     문서를 굴리려 하고 문서는 넘치지 않으니 **아무 일도 안 일어난다.** 그래서 우리가 직접 굴린다.
-     ⚠ **`e.repeat` 가드보다 먼저** 본다 — 그 가드는 채점 연타(스페이스 길게)를 막으려던 것이고,
-       스크롤은 눌러 두면 계속 굴러야 한다. 여기서 처리하고 나간다. */
-  if(/^(Arrow(Left|Right|Up|Down)|Page(Up|Down))$/.test(e.key) && $('ovlHd').classList.contains('show')){ hdKey(e); return; }   // 회독본 창이 떠 있으면 방향키는 전부 판 몫
-  if((e.key==='ArrowUp'||e.key==='ArrowDown'||e.key==='PageUp'||e.key==='PageDown')){
-    const inSolve = $('scrSolve').classList.contains('on') && !document.querySelector('.ovl.show, #ovlHd.show, #ovlImg.show');
-    // 풀이 화면에서는 방향키(↑, ↓)를 채점 키로 쓰므로, PageUp/PageDown이거나 풀이 화면이 아닐 때만 스크롤
-    if(!inSolve || e.key.startsWith('Page')){
-      const t0=e.target, tg=t0&&t0.tagName;
-      if(!(tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT')){
-        const box=scrollBox();
-        if(box && box.scrollHeight>box.clientHeight+2){
-          const big=e.key.startsWith('Page');
-          const step=Math.max(80, Math.round(box.clientHeight*(big?0.9:0.42)));
-          box.scrollBy({top:(e.key==='ArrowUp'||e.key==='PageUp')?-step:step, behavior:'auto'});
-          e.preventDefault(); return;
-        }
-      }
-    }
-  }
-  /* 🔴 **키를 누르고 있으면 브라우저가 같은 키를 계속 보낸다**(`e.repeat`) — 스페이스를 길게 누르면
-     「공개 → 알맞음 → 다음 카드 공개 → 알맞음…」으로 카드가 줄줄이 넘어간다(동하 09-09 지적).
-     채점 버튼은 `revealed`가 false로 돌아가 이중 채점이 안 되지만, **연속 전진은 막을 것이 없었다.**
-     한 번 누름 = 한 번 처리 — 반복 입력은 통째로 버린다. 손을 떼고 다시 누르면 그때 먹는다. */
-  if(e.repeat) return;
-  const t=e.target, tag=t&&t.tagName;
-  const typing = tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||t?.isContentEditable;
-  /* 🔴 회독본 창(#ovlHd)·그림 확대(#ovlImg)는 `.ovl`이 아니라 여기서 빠졌다 — 그 위에서 키·게임패드가 **뒤 카드를 채점**했다(리뷰 09-23 R8 · Space 두 번 = 안 본 카드 「알맞음」). */
-  const ovl=document.querySelector('.ovl.show') || document.querySelector('#ovlHd.show, #ovlImg.show');
-  if(pauseAt){                        // 정지 중엔 Space·Enter·Esc·P로 재개
-    if([' ','enter','escape','p','s'].includes(keyOf(e))){ e.preventDefault(); resumeSession(); }
-    return;
-  }
-  if(e.key==='Escape'){
-    if(ovl){ if(ovl.id==='ovlCard')closeCardSheet(); else if(ovl.id==='ovlHd')closeHoedok(); else if(ovl.id==='ovlImg')closeImg(); else ovl.classList.remove('show'); e.preventDefault(); }
-    else if($('rail').classList.contains('open')){ $('rail').classList.remove('open'); $('railScrim').classList.remove('show'); }
-    else if(typing){ t.blur(); }
-    else if($('scrSolve').classList.contains('on') && $('summary').style.display==='none'){ e.preventDefault(); push(); go('scrHome'); }   // 닫을 것이 없으면 Esc = 홈(나가기 · 09-25 왼손 키)
-    return;
-  }
-  if(typing||ovl)return;
-  let k=keyOf(e);                    // let — 아래 왼손 키가 옛 키로 바꿔 쓴다(09-25)
-  if(k==='j'){ e.preventDefault(); triggerStudyPoke(); return; }
-  if(k==='/'){ e.preventDefault(); go('scrList'); $('qSearch').focus(); return; }
-  if(k==='h'){ e.preventDefault(); push(); go('scrHome'); return; }
-  if(!$('scrSolve').classList.contains('on'))return;
-  if($('summary').style.display!=='none'){          // 요약 화면 = Enter/Space가 [다음]
-    if(k===' '||k==='enter'){ e.preventDefault(); const b=$('smNew'); if(b)b.click(); }
-    return;
-  }
-  const curC=cur(), isRe=!!(curC && curC._re>0) || $('gradeBar').classList.contains('re') || !!(curSess && curSess.asRe);
-  if(k===' '||k==='enter'){ e.preventDefault();
-    if(!revealed)reveal(); else if(!itemMarks.some(Boolean))rate(3); return; }
-  if(e.key==='ArrowUp'){
-    e.preventDefault();
-    if(!revealed) reveal();
-    else rate(1); // 위 = 다시
-    return;
-  }
-  if(e.key==='ArrowRight'){
-    e.preventDefault();
-    if(!revealed) reveal();
-    else rate(isRe ? 3 : 2); // 재출 = 통과(3), 일반 = 어려움(2)
-    return;
-  }
-  if(e.key==='ArrowDown'){
-    e.preventDefault();
-    if(!revealed) reveal();
-    else rate(3); // 아래 = 알맞음/통과(3)
-    return;
-  }
-  if(e.key==='ArrowLeft'){
-    e.preventDefault();
-    if(!revealed) reveal();
-    else rate(isRe ? 3 : 4); // 재출 = 통과(3), 일반 = 쉬움(4)
-    return;
-  }
-  /* 🔴 Shift+B = 내일로 (Bury) — B 단독은 8BitDo에서 「어려움/통과」 채점 키 */
-  if(e.shiftKey && (k==='b'||e.key==='B')){
-    if(tooSoon()) return;
-    $('rBury').click();
-    return;
-  }
-  /* 🔴 Ctrl+1~4 = 사유 칩 — 채점(1~4)보다 **먼저** 본다. 레일이 닫혀 있어도 먹는다(칩은 레일 안이지만
-     `toggleFlagType`은 화면과 무관하다) — 그래서 무엇이 켜졌는지 토스트로 말해 준다. */
-  if(e.ctrlKey){ e.preventDefault();
-    const c=cur(); if(!c)return;
-    const name=FLAG_TYPES[RATE_KEY[k]-1]; if(!name)return;
-    toggleFlagType(c,name); syncRail();
-    toast(((st(c.id).ft||[]).includes(name)?'':'해제 · ')+name);
-    return; }
-  if(RATE_KEY[k]){ e.preventDefault(); if(!revealed) reveal(); else rate((isRe && (RATE_KEY[k]===2 || RATE_KEY[k]===4)) ? 3 : RATE_KEY[k]); return; }   // 1~4 / zxcv 등 채점 (앞면에선 공개)
-  /* 🔴 **왼손 키** (동하 09-25 「zxcv 기본 · 다른 버튼도 왼손 자리 + 직관적으로(되돌리기 → revert니까 r)」)
-     R 되돌리기(Revert) · Q 끄기(Quit · 이 카드 그만) · S 일시정지(Stop) · Esc 홈(나가기) · F 플래그 · T 힌트. */
-  if(k==='r') k='u'; else if(k==='q') k='o'; else if(k==='s') k='p';
-  if(k==='u'||k==='o'){ if(tooSoon()) return; }   // 카드 바뀐 직후 연타 — tooSoon 주석
-  if(k==='u'){ doUndo(); return; }
-  if(k==='f'){ $('rFlag').click(); return; }
-  if(k==='o'){ $('rOff').click(); return; }   // 끄기 = 이 카드 그만
-  if(k==='p'){ pauseSession(); return; }
-  /* `C` = 초성 힌트 (동하 09-14 「초성 나타내기 단축키」). 답 보기 전, 아직 안 연 칩 중 첫 것을 연다 —
-     항목이 여럿이면 누를 때마다 다음 칩. 칩이 없는 카드(범위 밖·표·도식)면 아무 일도 없다. 열면 채점이 「다시」로 잠기는 규칙은 칩과 같다. */
-  if(k==='t'){ if(revealed) return; const b=[...document.querySelectorAll('#hintBox.on .hint-chip:not(.on)')][0]; if(b) b.click(); return; }   // 초성 힌트 C→T (09-22 · C가 채점 「알맞음」이 됐다)
-});
+document.addEventListener('keydown',e=>window.SienKeys?.handle(e));
 
 /* 테마 */
 /* 테마 = auto · white · paper · dark (09-24 디자인 이식) — 옛 값 b → dark · c → paper.
@@ -15532,7 +15299,7 @@ function hdStep(dir){
     const nx=Math.max(0, Math.min(hs.length-1, cur+dir)); if(nx===cur && dir<0 && cur===0){ w.scrollTo({top:0}); return true; }
     if(nx===cur) return false; hs[nx].scrollIntoView({block:'start'}); return true; }catch(e){ return false; }
 }
-function hdKey(e){ if((!kbdOn && !_padEv) || e.metaKey||e.ctrlKey||e.altKey) return;
+function hdKey(e){ if(!kbdOn || e.metaKey||e.ctrlKey||e.altKey) return;
   if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ if(hdStep(e.key==='ArrowRight'?1:-1)) e.preventDefault(); return; }
   /* 🔴 ↑↓도 본문을 굴린다 (동하 09-16 「오른쪽 사이드바로 한번 넘어가고 나면 그 뒤로 방향키가 안 먹음」) — 목차(사이드바)의 링크에 초점이 가면
      브라우저 기본 스크롤이 그 목차 상자를 굴리려 해 본문은 안 움직였다. 초점이 어디든 판 본문(window)을 굴린다. */
@@ -16096,7 +15863,7 @@ window.addEventListener('DOMContentLoaded', async()=>{
     if(!sessions.length) sessions=[newSessObj('전체 복습', HOW_TPL[0].how, {}, 'auto')];
     normalizeSessions();
   } catch(e) { showBanner(e.message||'초기화 실패',false); }
-  finally { $('loading').style.display='none'; go('scrHome'); renderHome(); }
+  finally { $('loading').style.display='none'; if(!curSess)go('scrHome'); renderHome(); window.sienBootComplete=true; }
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════════════════
@@ -16847,8 +16614,8 @@ function getDeckCards(deck, includeChildren = true){
 }
 
 const DEFAULT_DECK_OPTS = {
-  newLimit: 20,
-  reviewLimit: 200,
+  newLimit: 40,
+  reviewLimit: 400,
   retention: 0.90
 };
 
@@ -16896,26 +16663,11 @@ function getDeckOptions(deck){
 }
 
 function getTodayStudiedCounts(deck){
-  const cards = getDeckCards(deck, true);
-  const cardMap = new Map();
-  cards.forEach(c => cardMap.set(c.id, c));
-
-  const tr = todayRatings();
-  let studiedNew = 0;
-  let studiedReview = 0;
-
-  for(const [id, rating] of Object.entries(tr)){
-    const c = cardMap.get(id);
-    if(c){
-      const s = state.cards && state.cards[id];
-      if(s && (s.n === 1 || s.reps === 1)){
-        studiedNew++;
-      } else {
-        studiedReview++;
-      }
-    }
-  }
-  return { studiedNew, studiedReview };
+ const ids=new Set(getDeckCards(deck,true).map(c=>c.id)),seen=new Set();let studiedNew=0,studiedReview=0;
+ for(const e of state.log){if(!ids.has(e[0])||seen.has(e[0])||dayKey(new Date(logTs(e)))!==todayKey())continue;
+   seen.add(e[0]);const x=e[3]||{};
+   if(x.previousPhase===0||x.ankiType===0)studiedNew++;else studiedReview++;
+ }return {studiedNew,studiedReview};
 }
 
 function getDeckStats(deck, includeChildren = true){
@@ -16929,8 +16681,8 @@ function getDeckStats(deck, includeChildren = true){
     if(retired(c) || offed(c)) continue;
     if(trM[c.id] === 1) again++;
     if(isNew(c)) rawNew++;
+    else if(SienSM2.learning(state.cards[c.id])) learn++;
     else if(isDue(c)) rawDue++;
-    else learn++;
   }
 
   // 일일 한도 차감 (Anki 표준)
@@ -17480,7 +17232,7 @@ function playDeck(deck){
     toast('덱에 카드가 없습니다. 카드를 추가해주세요.');
     return;
   }
-  const aliveCards = cards.filter(c => !retired(c) && !offed(c));
+  const aliveCards = cards.filter(c => !retired(c) && !offed(c) && !buried(c));
   if(!aliveCards.length){
     toast('덱에 학습할 수 있는 카드가 없습니다.');
     return;
@@ -17490,22 +17242,23 @@ function playDeck(deck){
   const opts = stats.opts;
 
   // 1. 만기 복습 카드 선발 (오늘 남은 복습 한도 stats.due 만큼)
-  const dueCards = aliveCards.filter(c => isDue(c)).slice(0, stats.due);
+  const dueCards = aliveCards.filter(c => !SienSM2.learning(state.cards[c.id]) && isDue(c)).slice(0, stats.due);
+  const learningCards=aliveCards.filter(c=>SienSM2.learning(state.cards[c.id]));
 
   // 2. 신규 카드 선발 (오늘 남은 신규 한도 stats.new 만큼)
   const newCards = aliveCards.filter(c => isNew(c)).slice(0, stats.new);
 
   // 대기 큐 구성 (복습 먼저, 그 다음 신규 카드)
-  const pending = [...dueCards, ...newCards];
-  const toStudy = pending.length ? pending : aliveCards.slice(0, 50);
+  const pending = [...learningCards,...dueCards,...newCards];
+  const toStudy = pending;
 
   if(!pending.length){
-    toast(`오늘 '${deck.name}' 덱의 일일 학습 목표를 모두 마쳤습니다! (전체 카드 복습 진행)`);
+    toast(`오늘 '${deck.name}' 덱의 학습을 마쳤습니다.`);return;
   } else {
     toast(`'${deck.name}' 덱 학습 시작 (복습 ${dueCards.length}장 + 신규 ${newCards.length}장)`);
   }
 
-  startAdHoc(toStudy, deck.name, `${deck.name} 학습 (${toStudy.length}장)`, true, false);
+  startAdHoc(toStudy, deck.name, `${deck.name} 학습 (${toStudy.length}장)`, false, false);
 }
 
 // 덱 오답만 모아 풀기 (하위 덱 포함)
@@ -19204,6 +18957,10 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-app.js?v=20261016-4"></script>
+<script src="sien-sm2.js?v=20261016-5"></script>
+<script src="sien-learning.js?v=20261016-5"></script>
+<script src="sien-keys.js?v=20261016-5"></script>
+<script src="sien-pokes.js?v=20261016-5"></script>
+<script src="sien-app.js?v=20261016-5"></script>
 </body>
 </html>
