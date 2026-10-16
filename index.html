@@ -13850,6 +13850,10 @@ function renderCardSheet(){
       <button class="cs-act danger" id="csForget">처음부터 다시</button>
       <button class="cs-act" id="csClose">닫기</button>
     </div>`;
+  const csFront=$('csSheet').querySelector('.cs-front');
+  const csBack=$('csSheet').querySelector('.cs-back');
+  SienRender.render(csFront,c.sien?.v===1?c:{...c,front:m?m[2]:c.front},'f');
+  if(csBack) SienRender.render(csBack,c,'b');
   $('csSheet').scrollTop=keepScroll;
   const rr=()=>renderCardSheet();
   const csEditEl = $('csEditCard');

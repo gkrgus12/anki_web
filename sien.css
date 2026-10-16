@@ -1,4 +1,4 @@
-#cFront.sien-text,#cBack.sien-text{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;line-height:1.65}
+#cFront.sien-text,#cBack.sien-text,#csSheet .sien-text{white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;line-height:1.65}
 #cBack.sien-text{font-size:19px;font-weight:500;letter-spacing:0}
 .sien-text mark{padding:.06em .1em;border-radius:.18em;color:#242424;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .sien-text mark.sien-target{background:#f7db85}
