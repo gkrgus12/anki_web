@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261016-7">
-<script src="sien-study.js?v=20261016-7"></script>
-<script src="sien-render.js?v=20261016-7"></script>
+<link rel="stylesheet" href="sien.css?v=20261016-8">
+<script src="sien-study.js?v=20261016-8"></script>
+<script src="sien-render.js?v=20261016-8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -10120,7 +10120,8 @@ function selecting(){   // 지금 글자가 실제로 잡혀 있나 = 방금 동
   const s=window.getSelection&&window.getSelection();
   return !!(s && !s.isCollapsed && String(s).trim());
 }
-$('card').addEventListener('click',()=>{ if(Date.now()-lastSwipeAt<450)return;
+$('card').addEventListener('click',e=>{ if(Date.now()-lastSwipeAt<450)return;
+  if(e.target.closest('.sien-note-explanation,summary,a,button,input,textarea,select'))return;
   /* 문면을 끌어 선택하면 mouseup 뒤에 click이 따라온다 — 그걸 탭으로 먹으면 복사하려다 답면이 접힌다.
      선택을 지우는 평범한 클릭은 mousedown 시점에 이미 선택이 풀려 여기 안 걸린다. */
   if(selecting())return;
@@ -18914,10 +18915,10 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261016-7"></script>
-<script src="sien-learning.js?v=20261016-7"></script>
-<script src="sien-keys.js?v=20261016-7"></script>
-<script src="sien-pokes.js?v=20261016-7"></script>
-<script src="sien-app.js?v=20261016-7"></script>
+<script src="sien-sm2.js?v=20261016-8"></script>
+<script src="sien-learning.js?v=20261016-8"></script>
+<script src="sien-keys.js?v=20261016-8"></script>
+<script src="sien-pokes.js?v=20261016-8"></script>
+<script src="sien-app.js?v=20261016-8"></script>
 </body>
 </html>

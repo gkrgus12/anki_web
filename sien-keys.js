@@ -33,6 +33,7 @@
       const name=actions.find(a=>a[0]===capture)[1];bindings[capture]=[key];capture=null;save();status(name+' → '+label(key)+' 저장됨');return;
     }
     if(typing||!kbdOn)return;
+    if(target?.closest?.('summary')&&['Space','Enter'].includes(e.code))return;
     const action=actions.find(([id])=>bindings[id].includes(key))?.[0];if(!action)return;
     const overlay=document.querySelector('.ovl.show, #ovlHd.show, #ovlImg.show');
     if(overlay&&action!=='close')return;

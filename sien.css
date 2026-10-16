@@ -24,3 +24,20 @@
 /* A scheduled learning card cannot be revealed or graded while waiting. */
 #scrSolve.sien-waiting #gradeBar,#scrSolve.sien-waiting #ohMore{display:none!important;}
 body:has(#scrSolve.on.sien-waiting) #rail{display:none!important;}
+/* Obsidian explanations keep their hierarchy, independent of card typography. */
+.sien-note-explanation{white-space:normal;font-size:.9em;font-weight:400;line-height:1.7}
+.sien-note-explanation p{margin:.45em 0;white-space:pre-wrap}
+.sien-note-explanation h4{margin:1em 0 .45em;font-size:1em;font-weight:650;white-space:pre-wrap}
+.sien-note-explanation ul,.sien-note-explanation ol{margin:.45em 0;padding-left:1.5em}
+.sien-note-explanation li{padding-left:.15em;margin:.3em 0}
+.sien-note-explanation li>p{margin:.2em 0}
+.sien-note-callout{--callout-color:95,143,175;border-left:3px solid rgb(var(--callout-color));background:rgba(var(--callout-color),.09);border-radius:8px;padding:13px 16px;margin:12px 0;overflow-wrap:anywhere}
+.sien-note-callout[data-tone=tip]{--callout-color:51,155,143}
+.sien-note-callout[data-tone=warning]{--callout-color:188,137,45}
+.sien-note-callout[data-tone=quote]{--callout-color:133,139,148}
+.sien-callout-title{font-size:1em;font-weight:650;line-height:1.6;white-space:pre-wrap}
+summary.sien-callout-title{cursor:pointer;min-height:26px}
+summary.sien-callout-title:focus-visible{outline:2px solid rgb(var(--callout-color));outline-offset:4px;border-radius:3px}
+.sien-callout-body{white-space:normal}.sien-callout-body>:first-child{margin-top:8px}.sien-callout-body>:last-child{margin-bottom:0}
+.sien-note-quote{border-left:3px solid var(--line);padding-left:14px;margin:12px 0;color:var(--ink2)}
+@media(max-width:600px){.sien-note-callout{padding:11px 12px}.sien-callout-body .sien-note-callout{padding:10px}.sien-note-explanation ul,.sien-note-explanation ol{padding-left:1.2em}}
