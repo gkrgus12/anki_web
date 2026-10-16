@@ -1,12 +1,14 @@
 /* UI adapter for the SM-2 scheduler. Imported due dates are never recalculated at boot. */
 (function(){
   'use strict';
-  const M=SienSM2;let seedLog=null,seedSize=-1,seeds=new Map(),timer=null,waiting=false;
+  const M=SienSM2;let seedLog=null,seedSize=-1,seeds=new Map(),grades=new Map(),timer=null,waiting=false;
   function imported(id){
     if(seedLog!==state.log||seedSize!==state.log.length){
-      seedLog=state.log;seedSize=state.log.length;seeds=new Map();
-      for(const e of state.log){const x=e[3];if(x?.ankiId&&x.factor>0)seeds.set(e[0],{ease:x.factor/1000,step:x.ankiType===0&&x.ivl===-600?1:0});}
-    }return seeds.get(id)||{};
+      seedLog=state.log;seedSize=state.log.length;seeds=new Map();grades=new Map();
+      for(const e of [...state.log].sort((a,b)=>a[1]-b[1])){const x=e[3];if(x?.ankiId&&x.factor>0)seeds.set(e[0],{ease:x.factor/1000,step:x.ankiType===0&&x.ivl===-600?1:0});
+        if(x?.scheduler==='anki-sm2-v1'){if(!grades.has(e[0]))grades.set(e[0],[]);grades.get(e[0]).push({grade:e[2],phase:x.previousPhase});}
+      }
+    }return {...seeds.get(id),grades:grades.get(id)};
   }
   function next(c,num,now){return M.next(st(c.id),num,now,c.id,imported(c.id));}
   function insert(c){

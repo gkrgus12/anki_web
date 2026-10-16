@@ -15,8 +15,23 @@
   }
   function seed(s,imported={}){
     const f=s?.fsrs;
-    if(s?.sm2?.v===1&&f)return copy(s.sm2);
-    return {v:1,ease:Math.max(1.3,imported.ease||2.5),step:f?.state===1?(imported.step??f.learning_steps??0):0,interval:Math.max(1,f?.scheduled_days||1)};
+    // The original migration encoded factor as 11 - factor/300 in the immutable
+    // base. Current difficulty may have changed under FSRS and must not be used.
+    const base=s?.base?.fsrs,d=base?.difficulty;
+    const originalEase=[2,3].includes(base?.state)&&Number.isFinite(d)&&d>1&&d<=11-1300/300?Math.round((11-d)*300)/1000:null;
+    const originEase=Math.max(1.3,imported.ease||originalEase||2.5);
+    if(s?.sm2?.v===1&&f){
+      const m=copy(s.sm2);
+      // Upgrade the first SM-2 release's default seed using the saved answer grades.
+      // Only ease is recovered; current due dates, counts and history stay untouched.
+      if(m.originEase==null&&imported.grades?.length){
+        m.ease=originEase;
+        for(const e of imported.grades)if(e.phase===2)m.ease=Math.round(Math.max(1.3,m.ease+({1:-.2,2:-.15,3:0,4:.15}[e.grade]||0))*1000)/1000;
+        m.originEase=originEase;
+      }
+      return m;
+    }
+    return {v:1,ease:originEase,originEase,step:f?.state===1?(imported.step??f.learning_steps??0):0,interval:Math.max(1,f?.scheduled_days||1)};
   }
   function next(s,grade,now,id='',imported={},fuzz=true){
     if(![1,2,3,4].includes(grade))throw new Error('Invalid grade');

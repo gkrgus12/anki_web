@@ -32,6 +32,19 @@ test('fuzz is stable between preview and answer and respects Anki ranges and cap
  for(let i=0;i<100;i++){const r=[2,3,4].map(g=>M.next(review,g,now,'card'+i));assert.ok(r[0].days>=11&&r[1].days>r[0].days&&r[2].days>r[1].days);assert.deepEqual(M.next(review,3,now,'card'+i),r[1]);}
  assert.equal(M.interval(999999,999999,.99),36500);
 });
+test('migration restores original ease even when logs omit factor and FSRS difficulty has changed',()=>{
+ const old={fsrs:{...review.fsrs,difficulty:1},base:{fsrs:{state:2,difficulty:11-1850/300}}},snapshot=JSON.stringify(old);
+ assert.equal(M.seed(old).ease,1.85);assert.equal(M.next(old,3,now,'',{},false).days,19);assert.equal(JSON.stringify(old),snapshot);
+ assert.equal(M.seed({...old,base:{fsrs:{state:1,difficulty:10}}}).ease,2.5);
+ assert.equal(M.seed({...old,base:{fsrs:{state:2,difficulty:1}}}).ease,2.5);
+ assert.equal(M.seed({...old,sm2:{v:1,ease:1.7,step:0,interval:10}}).ease,1.7);
+});
+test('early release ease is corrected from original base and grades without rescheduling',()=>{
+ const s={fsrs:{...review.fsrs},base:{fsrs:{state:3,difficulty:11-2150/300}},sm2:{v:1,ease:2.5,interval:2,step:0}},snapshot=JSON.stringify(s);
+ assert.equal(M.seed(s,{grades:[{grade:4,phase:3}]}).ease,2.15);
+ const fixed=M.seed(s,{grades:[{grade:1,phase:2},{grade:1,phase:3},{grade:3,phase:3},{grade:4,phase:2}]});assert.equal(fixed.ease,2.1);assert.equal(fixed.originEase,2.15);
+ assert.equal(M.seed({...s,sm2:fixed},{grades:[{grade:1,phase:2}]}).ease,2.1);assert.equal(JSON.stringify(s),snapshot);
+});
 test('short-term due uses seconds, long-term due uses the 4am day boundary',()=>{
  const a=state(M.next({},1,now));assert.equal(M.due(a,later(59)),false);assert.equal(M.due(a,later(60)),true);
  const d=state(M.next({},4,now));assert.equal(M.due(d,new Date(d.fsrs.due).getTime()-1),false);assert.equal(M.due(d,Date.parse(d.fsrs.due)),true);

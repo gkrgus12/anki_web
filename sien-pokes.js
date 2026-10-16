@@ -5,7 +5,8 @@
   function read(){try{return JSON.parse(localStorage.getItem(key())||'[]');}catch{return [];}}
   function save(rows){localStorage.setItem(key(),JSON.stringify(rows.slice(-40)));}
   function render(){
-    if(!key()||document.visibilityState!=='visible')return;
+    if(!key()){$('sienPokeNotice')?.remove();return;}
+    if(document.visibilityState!=='visible')return;
     let el=$('sienPokeNotice');const rows=read().filter(r=>!r.read);
     if(!rows.length){el?.remove();return;}
     if(!el){el=document.createElement('aside');el.id='sienPokeNotice';el.setAttribute('aria-label','받은 찌르기');el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.addEventListener('click',e=>e.stopPropagation());document.body.append(el);}
@@ -13,6 +14,7 @@
     for(const r of rows.slice(-5)){const line=document.createElement('p');line.textContent=(r.name||'스터디 친구')+'님이 콕 찔렀어요';el.append(line);}
   }
   async function receive(){
+    render();
     if(!SC.auth||!SC.group||scPokeBusy||Date.now()<scPokeOff||document.visibilityState!=='visible'||!document.hasFocus())return;
     scPokeBusy=true;
     try{
