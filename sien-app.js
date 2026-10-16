@@ -1,0 +1,127 @@
+/* Personal Gist transport. Each browser owns its journal; no whole-collection PUT. */
+(function(){
+  'use strict';
+  const S=SienStudy,WEB='anki_fsrs_sync_data.json',PENDING='sien-pending-v1:',CACHE='sien-view-v1';
+  let baseline=null,clock=0,applying=false,ready=false,chain=Promise.resolve(),timer=null;
+  let custom='[]',deleted=new Set(),fileCache=new Map(),deviceId='';
+  const explicitUndo=new Set();
+  const copy=x=>JSON.parse(JSON.stringify(x));
+  const empty=()=>({version:1,cards:[],decks:[],state:{cards:{},log:[]}});
+  function error(e){setSyncStatusUI('error',e.message);showBanner(e.message||'학습 기록 저장에 실패했습니다. 이 창을 닫지 말고 다시 동기화해 주세요.',false);}
+  async function put(key,value){const db=await idbOpen();try{await new Promise((resolve,reject)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('로컬 저장이 취소되었습니다.'));});}finally{db.close();}}
+  function pending(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(PENDING)){const value=JSON.parse(localStorage.getItem(k));out.push(value);}}return out;}
+  function payload(){return {version:1,cards:DATA.map(S.cleanCard),decks:copy(DECKS),state:{cards:copy(state.cards),log:copy(state.log)}};}
+  function capture(){
+    if(!ready||applying)return;
+    const now=payload(),change=baseline&&S.delta(baseline,now);
+    if(change?.removedLogs){change.removedLogs=change.removedLogs.filter(k=>explicitUndo.has(k));if(!change.removedLogs.length)delete change.removedLogs;}
+    if(!change||!Object.keys(change).length){baseline=now;return;}
+    const e={id:crypto.randomUUID(),at:Math.max(Date.now(),clock+1),change};
+    // Synchronous outbox before acknowledging the local mutation. Card caches live in IDB.
+    try{localStorage.setItem(PENDING+e.id,JSON.stringify(e));}catch{throw new Error('학습 기록을 기기에 저장하지 못했습니다. 이 창을 닫지 말고 저장 공간을 확보해 주세요.');}
+    for(const k of change.removedLogs||[])explicitUndo.delete(k);
+    clock=e.at;baseline=now;scheduleGistAutoSync();
+    chain=chain.then(()=>put(CACHE,now)).catch(error);
+  }
+  function apply(p,blocked=[]){
+    S.validPayload(p);applying=true;
+    try{
+      deleted=new Set(blocked);DATA=p.cards.filter(c=>!deleted.has(c.id)).map(c=>copy(c));BYID={};
+      DATA.forEach((c,i)=>{c._i=i;normalizeCard(c);BYID[c.id]=c;});
+      DECKS=copy(p.decks);custom=JSON.stringify(p.cards);state.cards=copy(p.state.cards);state.log=copy(p.state.log);
+      logWeeks={};for(const entry of state.log){const wk=weekKeyOf(logDate(entry));(logWeeks[wk]||=[]).push(entry);}
+      ALLTAGS=[...new Set(DATA.flatMap(c=>c.tags||[]))];ALLTYPS=[...new Set(DATA.map(c=>c.typ).filter(Boolean))];SUBJECTS=[...new Set(DATA.map(c=>c.subj).filter(Boolean))];
+      TREE=null;_prMemo=null;lastRevIdx=null;firstRevIdx=null;
+      // Keep the current queue position; remove deleted entries without replaying answered cards.
+      if(Array.isArray(queue)){const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)).map(c=>Object.assign(c,BYID[c.id]||{}));queue=[...before,...rest];qPos=before.length;}
+      baseline=payload();syncDeckDropdowns();renderDeckHub();renderHome();renderList();renderStats();
+    }finally{applying=false;}
+  }
+  async function api(cfg,method='GET',files){
+    const opts={method,headers:gistHeaders(cfg.token),cache:'no-store'};
+    if(files){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify({files:Object.fromEntries(Object.entries(files).map(([k,v])=>[k,{content:JSON.stringify(v)}]))});}
+    const r=await fetch('https://api.github.com/gists/'+cfg.gistId,opts);if(!r.ok)throw new Error('GitHub 동기화 실패 (HTTP '+r.status+'). 미전송 기록은 이 기기에 보관 중입니다.');
+    const g=await r.json();if(g.public||g.truncated||g.owner?.login?.toLowerCase()!==cfg.username?.toLowerCase())throw new Error('Gist 소유자 또는 전체 파일 목록을 확인할 수 없습니다.');return g;
+  }
+  async function readFile(f){
+    if(fileCache.has(f.raw_url))return fileCache.get(f.raw_url);
+    let txt=f.content;if(f.truncated){const u=new URL(f.raw_url);if(u.protocol!=='https:'||u.hostname!=='gist.githubusercontent.com')throw new Error('원격 파일 주소가 올바르지 않습니다.');const r=await fetch(u.href,{cache:'no-store'});if(!r.ok)throw new Error('학습 기록 파일을 읽지 못했습니다.');txt=await r.text();}
+    const v=JSON.parse(txt);fileCache.set(f.raw_url,v);return v;
+  }
+  async function read(g){
+    if(!g.files?.[WEB])throw new Error('기존 카드 파일을 찾지 못했습니다.');
+    const p=S.validPayload(await readFile(g.files[WEB])),docs=[],blocked=[];let vaultId='';
+    for(const [name,f]of Object.entries(g.files)){
+      if(name.startsWith(S.PREFIX)||name.startsWith(S.BASE))docs.push(S.validateDoc(await readFile(f)));
+      if(name.startsWith('sien-obsidian-lifecycle-')){const d=await readFile(f);if(d.schema!==1||!Array.isArray(d.blocked))throw new Error('삭제 보호 기록이 손상되었습니다.');blocked.push(...d.blocked);}
+      if(name==='sien-obsidian-base-v2.json')vaultId=(await readFile(f)).vaultId;
+    }
+    return {p,docs,blocked,vaultId};
+  }
+  let activeSync=null;
+  function sync(manual=false){
+    if(activeSync)return activeSync.then(ok=>ok&&(manual||pending().length)?sync(manual):ok);
+    activeSync=runSync(manual).finally(()=>{activeSync=null;});return activeSync;
+  }
+  async function runSync(manual=false){
+    const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId)return false;
+    if(isGistSyncing)return false;isGistSyncing=true;setSyncStatusUI('syncing');
+    try{
+      if(!navigator.locks)throw new Error('이 브라우저는 안전한 다중 탭 저장을 지원하지 않습니다. 최신 Chrome 또는 Edge로 열어 주세요.');
+      return await navigator.locks.request('sien-gist-'+cfg.gistId,async()=>{
+        capture();await chain;
+        const ownId=await idbGet('sien-device-v1');deviceId=ownId||crypto.randomUUID();if(!ownId)await put('sien-device-v1',deviceId);
+        let remote=await read(await api(cfg)),outbox=pending();
+        const files=S.append(remote.docs,deviceId,outbox);
+        if(!remote.docs.some(d=>d.kind==='base'))files[S.BASE+crypto.randomUUID()+'.json']={schema:1,kind:'base',state:copy(remote.p.state)};
+        const allDeleted=[...new Set(outbox.flatMap(e=>e.change.deleted||[]))];
+        // Older 2.0.3 Obsidian clients also understand these durable exclusions.
+        if(allDeleted.length&&remote.vaultId){
+          const name='sien-obsidian-lifecycle-web-'+deviceId+'.json';
+          files[name]={schema:1,vaultId:remote.vaultId,deviceId:'web-'+deviceId,published:[],blocked:[...new Set([...remote.blocked,...allDeleted])]};
+        }
+        if(Object.keys(files).length){await api(cfg,'PATCH',files);remote=await read(await api(cfg));
+          const stored=new Set(remote.docs.filter(d=>d.kind==='journal').flatMap(d=>d.events.map(e=>e.id)));
+          if(outbox.some(e=>!stored.has(e.id)))throw new Error('전송 완료를 확인하지 못했습니다. 같은 기록으로 다시 확인합니다.');
+        }
+        // A grade may arrive during either network request. Capture it before applying remote state.
+        capture();const currentPending=pending();
+        let merged=S.merge(remote.p,[...remote.docs,{schema:1,kind:'journal',deviceId,sequence:0,events:currentPending}],remote.blocked);
+        await put(CACHE,merged.payload);
+        capture();merged=S.merge(remote.p,[...remote.docs,{schema:1,kind:'journal',deviceId,sequence:0,events:pending()}],remote.blocked);
+        clock=Math.max(clock,merged.clock);apply(merged.payload,merged.deleted);
+        for(const e of outbox)localStorage.removeItem(PENDING+e.id);
+        dirtyFiles.clear();dirtyLogs.clear();saveDirtyLogs();setDirty(pending().length>0);lastPushAt=Date.now();ratedSincePush=0;
+        cfg.lastSyncAt=Date.now();saveGistConfig(cfg);setSyncStatusUI('synced');
+        if(manual)toast('동기화가 완료되었습니다');if(pending().length)scheduleGistAutoSync();return true;
+      });
+    }catch(e){error(e);if(manual)toast(e.message);return false;}finally{isGistSyncing=false;lastGistPullTime=Date.now();}
+  }
+  const oldGet=lsGet,oldSet=lsSet;
+  lsGet=function(k){return k===getUserStorageKey('custom_cards')?custom:oldGet(k);};
+  lsSet=function(k,v){if(k===getUserStorageKey('custom_cards')){custom=v;return true;}return oldSet(k,v);};
+  restoreUserCards=function(){const list=JSON.parse(custom);const map=new Map(DATA.filter(c=>!deleted.has(c.id)).map(c=>[c.id,c]));for(const c of list)if(!deleted.has(c.id))map.set(c.id,c);DATA=[...map.values()];BYID={};DATA.forEach((c,i)=>{normalizeCard(c);c._i=i;BYID[c.id]=c;});};
+  buildLocalSyncPayload=payload;executeGistSync=sync;
+  applyMergedGistData=p=>apply(p);
+  scheduleGistAutoSync=function(delay=1500){if(timer)clearTimeout(timer);timer=setTimeout(()=>{timer=null;sync(false);},delay);};
+  // All legacy collection/repository writers are routed through the one journal transport.
+  push=async()=>sync(false);refreshRemote=async()=>{lastRefreshAt=Date.now();return sync(false);};loadAll=async()=>{};loadData=async()=>{};loadWeeks=async()=>false;
+  const oldPushLog=pushLog;pushLog=function(entry){entry[3]={...(entry[3]||{}),sienId:crypto.randomUUID()};return oldPushLog(entry);};
+  const oldDropLog=dropLogEntry;dropLogEntry=function(entry){if(entry)explicitUndo.add(S.logKey(entry));return oldDropLog(entry);};
+  const originalRate=rate;rate=function(...args){const r=originalRate(...args);try{capture();}catch(e){error(e);}return r;};
+  const originalUndo=doUndo;doUndo=function(...args){const r=originalUndo(...args);try{capture();}catch(e){error(e);}return r;};
+  const originalDirty=setDirty;setDirty=function(v){const r=originalDirty(v);if(v&&!applying)queueMicrotask(()=>{try{capture();}catch(e){error(e);}});return r;};
+  const originalDelete=deleteCard;deleteCard=function(id){const r=originalDelete(id);try{capture();}catch(e){error(e);}return r;};
+  const originalDecks=saveUserDecks;saveUserDecks=function(...args){const r=originalDecks(...args);queueMicrotask(()=>{try{capture();}catch(e){error(e);}});return r;};
+  const originalSave=$('btnDoSaveCard')?.onclick;if(originalSave)$('btnDoSaveCard').onclick=function(...args){const r=originalSave.apply(this,args);try{capture();}catch(e){error(e);}return r;};
+  window.SienApp={capture,sync,async boot(){
+    try{
+      buildEngine();
+      const cached=await idbGet(CACHE)||empty();
+      const local=S.merge(cached,[{schema:1,kind:'journal',deviceId:'local',sequence:0,events:pending()}]);clock=local.clock;apply(local.payload,local.deleted);ready=true;
+      if(getGistConfig()?.token)await sync(false);
+    }catch(e){error(e);}
+  }};
+  window.addEventListener('online',()=>scheduleGistAutoSync(0));
+  window.addEventListener('pagehide',()=>{try{capture();}catch(e){error(e);}});
+})();

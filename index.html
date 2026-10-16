@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<title>내 일본어 카드</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -52,7 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="sien.css">
+<script src="sien-study.js"></script>
+<script src="sien-render.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -6571,7 +6574,7 @@ function dropLogEntry(e){            // undo — 그 항목 하나만 지목해 
      배열을 시각순으로 다시 세우기 때문에, 뒤에서부터 자르면 남의 기기 로그가 날아간다.
      항목은 (카드id|시각) — 병합 규칙과 같은 키 — 로 찾는다. */
   if(!e)return;
-  const hit=x=>x===e||(x[0]===e[0]&&x[1]===e[1]);
+  const hit=x=>x===e||SienStudy.logKey(x)===SienStudy.logKey(e);
   for(let i=state.log.length-1;i>=0;i--){ if(hit(state.log[i])){ state.log.splice(i,1); break; } }
   const wk=weekKeyOf(logDate(e));
   const w=logWeeks[wk];
@@ -9566,7 +9569,8 @@ function showCard(){
   $('revealHint').textContent = (c.typ==='도식' ? '다 그렸으면 카드를 눌러요' : '카드를 누르면 정답이 보여요') + (reN>0?' · 재출':'');
   const fText = String(c.front || c.q || '');
   const m = fText.match(/^〔([^〕]*)〕\s*(.*)$/s);
-  $('cScope').innerHTML=scopeHtml(c); $('cFront').textContent=m?m[2]:fText;
+  $('cScope').innerHTML=scopeHtml(c); if(c.sien?.v===1) SienRender.render($('cFront'),c,'f');
+  else { $('cFront').classList.add('sien-text'); $('cFront').textContent=m?m[2]:fText; }
   $('cFront').classList.toggle('is-long', (m?m[2]:fText).length>200);   // 긴 문면 = 질문 20(폰 16) · 디자인 §4
   $('card').classList.toggle('tbl', !!c.table);                           // 표 카드는 표가 곧 답 칸 — 가림 면 없음
   $('cBackWrap').classList.remove('on');
@@ -9630,10 +9634,12 @@ function fillBackText(c, hide){
   const el=$('cBack'); el.classList.remove('short','ans-s','ans-m','ans-l','ans-struct');
   if(hide){ el.textContent=''; el.style.display='none'; $('cAnsLab').style.display='none'; return; }
   el.style.display='block'; $('cAnsLab').style.display='';
+  if(c?.sien?.v===1){ SienRender.render(el,c,'b'); return; }
+  el.classList.remove('sien-text');
   const b=String((c && (c.back || c.a)) || ''), rows=backParts(b);
   if(rows){ el.classList.add('ans-struct');
     el.innerHTML=rows.map(([k,v])=>`<div class="as-row"><div class="as-k">${esc(k)}</div><div class="as-v">${esc(v)}</div></div>`).join(''); return; }
-  el.textContent=b;
+  el.textContent=b; el.classList.add('sien-text');
   el.classList.add(b.length<=12?'ans-s':b.length<=30?'ans-m':'ans-l');
 }
 /* 가림 면을 카드 바닥까지 늘린다(동하 09-25 「회색 부분 배치가 이상」) — 밑에 답면용 줄(#cMeta · 유형·＋태그·회독본 ↗)이
@@ -10847,19 +10853,12 @@ function renderSessRows(){
    · 🔴 **날짜 = 방 시간대의 새벽 4시 경계**(서버 study_groups.time_zone·day_start_hour · 옛 방 정보엔 없어 서울·4시) — 앱의 4시 경계와 같아졌다.
    · 상태 = 풀이 화면이 떠 있고 1분 안에 손을 댔으면 「공부 중」 · 풀이 화면인데 1분 넘게 가만히면 「잠시 멈춤」 · 그 밖 「접속 중」(애드온 IDLE_AFTER 1분).
    · 계정 = 처음 「참여」를 누를 때 익명 가입(애드온과 같다 — 기기마다 따로다. 이메일 연결은 아직 없음). 인증·방은 **이 기기 localStorage에만**(공개 저장소에 토큰을 올리지 않는다). */
-const SC_URL='https://uvrnsdknkivtclzlfjxx.supabase.co';
-const SC_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cm5zZGtua2l2dGNsemxmanh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0OTA2NzYsImV4cCI6MjA3MDA2NjY3Nn0.k_jx9ysXfPIsU9ls3NHSgE4uqEkOrdzPftVVcYvck2s';   // 애드온에 든 공개(anon) 키 그대로
+const SC_URL='';
+const SC_KEY='';
 const K_SC='cards_study_v1';
-let SC=(()=>{ try{ return JSON.parse(lsGet(K_SC)||'{}')||{}; }catch(e){ return {}; } })();
+let SC={};
 function scSave(){ lsSet(K_SC, JSON.stringify(SC)); }
-async function scReq(method, path, o){ o=o||{};
-  let url=SC_URL+path; if(o.query) url+='?'+new URLSearchParams(o.query).toString();
-  const h={apikey:SC_KEY, Accept:'application/json'}; if(o.token) h.Authorization='Bearer '+o.token; if(o.prefer) h.Prefer=o.prefer;
-  let body; if(o.body!==undefined){ body=JSON.stringify(o.body); h['Content-Type']='application/json'; }
-  let r; try{ r=await fetch(url,{method, headers:h, body, keepalive:!!o.keepalive}); }catch(e){ throw new Error('서버에 연결하지 못했어요'); }
-  const txt=await r.text(); let j=null; try{ j=txt?JSON.parse(txt):null; }catch(e){}
-  if(!r.ok){ const e=new Error((j&&(j.msg||j.message||j.error_description||j.error))||('HTTP '+r.status)); e.status=r.status; throw e; }
-  return j; }
+async function scReq(){ throw new Error('개인용 사이트에서는 공용 스터디 서버에 연결하지 않습니다.'); }
 function scStore(r){ const u=r.user||{}, old=SC.auth||{};
   SC.auth={access_token:r.access_token, refresh_token:r.refresh_token||old.refresh_token||'', expires_at:r.expires_at||Math.floor(Date.now()/1000)+(r.expires_in||3600), user_id:u.id||old.user_id};
   scSave(); }
@@ -16063,48 +16062,15 @@ function fixScopeKeys(){
 }
 
 /* ═══════════════ 부트 — 열면 홈 (풀이는 세션에서 시작) ═══════════════ */
-(async function(){
+window.addEventListener('DOMContentLoaded', async()=>{
   try {
-    if(localStorage.getItem('mc_purge_sm_v1') !== 'done'){
-      try {
-        localStorage.removeItem('cards_sessions_v1');
-        localStorage.removeItem('cards_state_v1');
-        localStorage.removeItem('cards_sched_v1');
-        localStorage.removeItem('cards_marks_v1');
-        localStorage.removeItem('cards_feedback_v1');
-        localStorage.setItem('mc_purge_sm_v1', 'done');
-      } catch(e){}
-    }
-    applyTheme();
-    loadCfg(); loadSessions(); loadIntake(); loadRest(); loadIv();
-    sessions = (sessions||[]).filter(x => x && x.name && !x.name.includes('Speaking') && !String(x.id||'').includes('speaking'));
-    if(!sessions.length){
-      sessions = [newSessObj('시작 가이드', HOW_TPL[0].how, {subj:['시작 가이드']})];
-    }
-    try { hoedokLoadCache(); } catch(e){}
-    try { await loadPlan(); } catch(e){}
-    try { await ymLoadBase(); } catch(e){}
-    await loadData();
-    if(DATA && DATA.length){
-      try { await loadAll(); } catch(e){}
-      try { fixScopeKeys(); } catch(e){}
-    }
-  } catch(bootErr) {
-    console.warn('[부트 경고]', bootErr);
-  } finally {
-    try {
-      const ld = $('loading') || document.getElementById('loading');
-      if(ld) ld.style.display = 'none';
-    } catch(e){}
-    try { go('scrHome'); } catch(e){}
-    try { renderHome(); } catch(e){}
-  }
-
-  try { tryResume(); } catch(e){}
-  try { loadFsrsParams(); } catch(e){}
-  try { checkNewVersion(); } catch(e){}
-  try { loadIndexes(); } catch(e){}
-})();
+    applyTheme(); loadCfg(); loadSessions(); loadIntake(); loadRest(); loadIv();
+    await SienApp.boot();
+    if(!sessions.length) sessions=[newSessObj('전체 복습', HOW_TPL[0].how, {}, 'auto')];
+    normalizeSessions();
+  } catch(e) { showBanner(e.message||'초기화 실패',false); }
+  finally { $('loading').style.display='none'; go('scrHome'); renderHome(); }
+});
 
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    연문 모드 — 자료층 (메타 발주 2026-09-08 §5 · 동하 「카드에서 개판쳐서 고생했어 — 자료구조를 처음부터 제대로」)
@@ -16752,9 +16718,9 @@ $('ovlImg').onclick=closeImg;
   const _s2=showCard; showCard=function(){ const Z=$('cardZone'); Z.classList.remove('anchored'); $('card').style.marginTop=''; return _s2.apply(this,arguments); }; }
 
 /* ═══════════════ 범용 Multi-User & Anki 덱 플랫폼 엔진 ═══════════════ */
-const SB_URL = 'https://uvrnsdknkivtclzlfjxx.supabase.co';
+const SB_URL = '';
 const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV2cm5zZGtua2l2dGNsemxmanh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0OTA2NzYsImV4cCI6MjA3MDA2NjY3Nn0.k_jx9ysXfPIsU9ls3NHSgE4uqEkOrdzPftVVcYvck2s';
-const sbClient = (typeof supabase !== 'undefined') ? supabase.createClient(SB_URL, SB_ANON) : null;
+const sbClient = null; // Personal Gist-only copy.
 sbUser = sbUser || null;
 
 // 1. 사용자별 테넌트 격리 스토리지 헬퍼
@@ -18036,7 +18002,7 @@ if($('btnDoSaveCard')) $('btnDoSaveCard').onclick = () => {
     if(c){
       c.q = q; c.a = a;
       c.front = q; c.back = a;
-      c.note = note;
+      c.note = note; delete c.sien; c.updatedAt=Date.now();
       c.subj = deck.name;
       c.unit = deck.name;
       c.deckId = deck.id;
@@ -18044,7 +18010,7 @@ if($('btnDoSaveCard')) $('btnDoSaveCard').onclick = () => {
       const custom = JSON.parse(lsGet(getUserStorageKey('custom_cards')) || '[]');
       const idx = custom.findIndex(x => x.id === editingCardId);
       if(idx >= 0){
-        custom[idx] = Object.assign({}, custom[idx], { q, a, front: q, back: a, note, subj: deck.name, unit: deck.name, deckId: deck.id });
+        custom[idx] = Object.assign({}, custom[idx], { q, a, front: q, back: a, note, subj: deck.name, unit: deck.name, deckId: deck.id, updatedAt:Date.now() }); delete custom[idx].sien;
       } else {
         custom.push(c);
       }
@@ -18939,108 +18905,11 @@ async function findOrCreateGist(token, customGistId){
   return { gistId: created.id, username, isNew: true };
 }
 
-async function fetchRemoteGistData(token, gistId){
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: gistHeaders(token),
-    cache: 'no-store'
-  });
-  if(!res.ok) throw new Error(`Gist 데이터를 불러오지 못했습니다 (HTTP ${res.status})`);
-  const gist = await res.json();
-  const file = gist.files && gist.files[GIST_SYNC_FILENAME];
-  if(!file) return null;
-
-  let content = file.content;
-  if(file.truncated && file.raw_url){
-    const rawRes = await fetch(file.raw_url, { cache: 'no-store' });
-    content = await rawRes.text();
-  }
-
-  if(!content || !content.trim()) return null;
-  try {
-    return JSON.parse(content);
-  } catch(e){
-    return null;
-  }
-}
-
-async function pushGistData(token, gistId, payload){
-  const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-    method: 'PATCH',
-    headers: {
-      ...gistHeaders(token),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      description: 'Memory Cards Web - Anki FSRS Sync Data (Private)',
-      files: {
-        [GIST_SYNC_FILENAME]: {
-          content: JSON.stringify(payload, null, 2)
-        }
-      }
-    })
-  });
-  if(!res.ok) throw new Error(`Gist 동기화 데이터 업로드 실패 (HTTP ${res.status})`);
-  return await res.json();
-}
-
+// SienApp owns all Gist transport and scheduling.
 let isGistSyncing = false;
-let gistAutoSyncTimer = null;
 let lastGistPullTime = 0;
-
-async function executeGistSync(isManual = false){
-  const cfg = getGistConfig();
-  if(!cfg || !cfg.token || !cfg.gistId){
-    if(isManual) toast('먼저 GitHub 토큰을 연결해주세요');
-    return false;
-  }
-
-  if(isGistSyncing) return false;
-  isGistSyncing = true;
-  setSyncStatusUI('syncing');
-
-  try {
-    const remote = await fetchRemoteGistData(cfg.token, cfg.gistId);
-    const local = buildLocalSyncPayload();
-
-    let finalPayload;
-    if(remote){
-      finalPayload = mergeSyncData(remote, local);
-    } else {
-      finalPayload = local;
-    }
-
-    applyMergedGistData(finalPayload);
-
-    finalPayload.updatedAt = Date.now();
-    await pushGistData(cfg.token, cfg.gistId, finalPayload);
-
-    cfg.lastSyncAt = Date.now();
-    saveGistConfig(cfg);
-
-    setSyncStatusUI('synced');
-    if(isManual) toast('기기간 클라우드 동기화가 완료되었습니다');
-    return true;
-  } catch(err) {
-    console.error('[Gist Sync Error]', err);
-    setSyncStatusUI('error', err.message);
-    if(isManual) toast(`동기화 실패: ${err.message || '네트워크 오류'}`);
-    return false;
-  } finally {
-    isGistSyncing = false;
-    lastGistPullTime = Date.now();
-  }
-}
-
-function scheduleGistAutoSync(delay = 3000){
-  const cfg = getGistConfig();
-  if(!cfg || !cfg.token || !cfg.gistId) return;
-
-  if(gistAutoSyncTimer) clearTimeout(gistAutoSyncTimer);
-  gistAutoSyncTimer = setTimeout(() => {
-    gistAutoSyncTimer = null;
-    executeGistSync(false);
-  }, delay);
-}
+async function executeGistSync(manual = false){ return window.SienApp?.sync(manual) || false; }
+function scheduleGistAutoSync(){ }
 
 function setSyncStatusUI(status, err){
   const badgeLabel = $('accountBadgeLabel');
@@ -19183,7 +19052,7 @@ function initGistSyncSystem(){
 
         // 최초 연결 시 자동 양방향 최초 병합 실행
         btn.textContent = '초기 데이터 병합 중...';
-        await executeGistSync(false);
+        if(!await executeGistSync(false)) throw new Error('기존 기록을 아직 받지 못했습니다. 연결 설정은 유지했으니 다시 동기화해 주세요.');
 
         toast(isNew ? `'${username}'님의 새 비공개 Gist가 생성되어 연결되었습니다` : `'${username}'님의 기존 Gist가 감지되어 동기화 연결되었습니다`);
         updateGistSyncUI();
@@ -19241,31 +19110,8 @@ function initGistSyncSystem(){
     }
   });
 
-  // setDirty 후킹: 변경사항 발생 시 3초 후 자동 백그라운드 푸시
-  if(typeof setDirty === 'function'){
-    const _origSetDirty = setDirty;
-    setDirty = function(v){
-      const r = _origSetDirty.apply(this, arguments);
-      if(v) scheduleGistAutoSync(3000);
-      return r;
-    };
-  }
+  // Capture hooks and initial load are installed once by SienApp.
 
-  // saveUserDecks 후킹: 덱 생성·수정 시 자동 백그라운드 푸시
-  if(typeof saveUserDecks === 'function'){
-    const _origSaveUserDecks = saveUserDecks;
-    saveUserDecks = function(){
-      const r = _origSaveUserDecks.apply(this, arguments);
-      scheduleGistAutoSync(3000);
-      return r;
-    };
-  }
-
-  // 앱 로드시 연결된 상태면 조용히 최신 데이터 가져오기
-  const cfg = getGistConfig();
-  if(cfg && cfg.token && cfg.gistId){
-    setTimeout(() => { executeGistSync(false); }, 1200);
-  }
 }
 const initAuthSystem = initGistSyncSystem;
 
@@ -19346,5 +19192,6 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
+<script src="sien-app.js"></script>
 </body>
 </html>
