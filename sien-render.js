@@ -5,7 +5,10 @@
     const text=String(side==='f'?(card.front||card.q||''):(card.back||card.a||''));
     el.replaceChildren();el.classList.add('sien-text');
     const ranges=card.sien?.v===1&&Array.isArray(card.sien[side])?card.sien[side].filter(r=>Array.isArray(r)&&Number.isInteger(r[0])&&Number.isInteger(r[1])&&r[0]>=0&&r[1]>0&&r[0]+r[1]<=text.length&&tags[r[2]]):[];
-    const points=[...new Set([0,text.length,...ranges.flatMap(r=>[r[0],r[0]+r[1]])])].sort((a,b)=>a-b);
+    const footerAt=side==='b'&&card.sien?.v===1&&Number.isInteger(card.sien.footerStart)&&card.sien.footerStart>=0&&card.sien.footerStart<text.length?card.sien.footerStart:null;
+    const footer=footerAt===null?null:document.createElement('small');
+    if(footer)footer.className='sien-footer';
+    const points=[...new Set([0,text.length,...(footer?[footerAt]:[]),...ranges.flatMap(r=>[r[0],r[0]+r[1]])])].sort((a,b)=>a-b);
     for(let i=0;i<points.length-1;i++){
       const from=points[i],to=points[i+1];let node=document.createTextNode(text.slice(from,to));
       for(const r of ranges.filter(r=>r[0]<=from&&r[0]+r[1]>=to)){
@@ -15,7 +18,8 @@
         }
         if(r[2]==='y'||r[2]==='g')wrapper.className=r[2]==='y'?'sien-target':'sien-other';
         wrapper.append(node);node=wrapper;
-      }el.append(node);
+      }
+      if(footer&&from>=footerAt){if(!footer.parentNode)el.append(footer);footer.append(node);}else el.append(node);
     }
   }
   root.SienRender={render};

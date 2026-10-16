@@ -42,3 +42,33 @@ test('journal rollover leaves older segments immutable',()=>{
  const event=e('one',1,{cards:[{id:'big',front:'a'.repeat(260000)}]}),files=S.append([],'pc',[event,e('two',2,{deleted:['a']})]);assert.equal(Object.keys(files).length,2);
  const next=S.append(Object.values(files),'pc',[e('three',3,{deleted:['b']})]);assert.equal(Object.keys(next).length,1);assert.ok(Object.keys(next)[0].endsWith('00001.json'));
 });
+test('exit delivery is deduplicated and never replaces the normal journal',()=>{
+ const first=e('normal',1,{logs:[['a',1,3,{sienId:'normal'}]]}),exit=e('exit',2,{logs:[['b',2,2,{sienId:'exit'}]]});
+ const normal={schema:1,kind:'journal',deviceId:'pc',sequence:0,events:[first]};
+ const immutable={schema:1,kind:'journal',deviceId:'pc',sequence:-1,immutable:true,events:[exit]};
+ const next=e('next',3,{logs:[['a',3,4,{sienId:'next'}]]});
+ const files=S.append([normal,immutable],'pc',[exit,next]);
+ assert.deepEqual(Object.values(files)[0].events.map(e=>e.id),['normal','next']);
+ const merged=S.merge(fixture(),[...Object.values(files),immutable]);
+ assert.equal(merged.payload.state.log.filter(e=>e[3]?.sienId==='exit').length,1);
+ assert.equal(S.append([immutable],'pc',[next])[S.PREFIX+'pc-00000.json'].sequence,0);
+});
+test('deleted default and child decks stay deleted across stale snapshots and devices',()=>{
+ const before=fixture();before.decks.unshift({id:'deck_default',name:'기본 덱'},{id:'child',name:'기본 덱::하위'});
+ const after=structuredClone(before);after.decks=after.decks.filter(d=>d.id==='d');
+ const change=S.delta(before,after);assert.deepEqual(change.deletedDecks,['deck_default','child']);
+ const deletion=j('pc',[e('remove-decks',10,change)]),stale=j('phone',[e('stale-decks',20,{decks:before.decks})]);
+ const merged=S.merge(before,[deletion,stale]);assert.deepEqual(merged.payload.decks,after.decks);
+ assert.deepEqual(merged.payload.state,before.state);assert.deepEqual(merged.payload.cards,before.cards);
+ assert.deepEqual(S.merge(merged.payload,[stale,deletion]),merged);
+ // Old plugin clients may retain a deck in the shared collection; the web tombstone still wins.
+ assert.deepEqual(S.merge({...merged.payload,decks:before.decks},[deletion]).payload.decks,after.decks);
+});
+test('last deck can remain deleted and a new deck with the same name has a new identity',()=>{
+ const p=fixture(),after=structuredClone(p);after.cards=[];after.decks=[];
+ const deletion=j('pc',[e('delete-all',10,S.delta(p,after))]);
+ const empty=S.merge(p,[deletion]);assert.deepEqual(empty.payload.decks,[]);assert.deepEqual(empty.payload.cards,[]);assert.deepEqual(empty.payload.state,p.state);
+ const fresh=j('phone',[e('create-new',20,{decks:[{id:'new-d',name:'words'}]})]);
+ assert.deepEqual(S.merge(p,[deletion,fresh]).payload.decks,[{id:'new-d',name:'words'}]);
+ assert.throws(()=>S.merge(p,[j('bad',[e('bad',30,{deletedDecks:'d'})])]));
+});

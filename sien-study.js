@@ -11,13 +11,13 @@
     if(doc.kind==='base'){if(!object(doc.state?.cards)||!Array.isArray(doc.state?.log))throw new Error('기존 학습 기록 보호 사본이 손상되었습니다.');return doc;}
     if(!/^[a-z0-9-]{1,100}$/i.test(doc.deviceId||'')||!Number.isInteger(doc.sequence)||!Array.isArray(doc.events))throw new Error('기기 학습 변경 기록이 손상되었습니다.');
     for(const e of doc.events){if(!e||typeof e.id!=='string'||!Number.isFinite(e.at)||!object(e.change))throw new Error('학습 변경 항목이 손상되었습니다.');
-      for(const name of ['cards','decks','deleted','logs','removedLogs'])if(e.change[name]!==undefined&&!Array.isArray(e.change[name]))throw new Error('학습 변경 항목 목록이 손상되었습니다.');
+      for(const name of ['cards','decks','deleted','deletedDecks','logs','removedLogs'])if(e.change[name]!==undefined&&!Array.isArray(e.change[name]))throw new Error('학습 변경 항목 목록이 손상되었습니다.');
       if(e.change.states!==undefined&&!object(e.change.states))throw new Error('복습 상태 변경 항목이 손상되었습니다.');
     }return doc;
   }
   function merge(payload,documents=[],blocked=[]){
     const next=clone(validPayload(payload)),logs=new Map(next.state.log.map(e=>[logKey(e),e])),events=new Map();
-    const cards=new Map(next.cards.map(c=>[c.id,c])),decks=new Map(next.decks.map(d=>[d.id,d])),deleted=new Set(blocked);
+    const cards=new Map(next.cards.map(c=>[c.id,c])),decks=new Map(next.decks.map(d=>[d.id,d])),deleted=new Set(blocked),deletedDecks=new Set();
     for(const doc of documents){validateDoc(doc);
       if(doc.kind==='base'){
         for(const [id,s]of Object.entries(doc.state.cards)){if(!next.state.cards[id]||stamp(s)>stamp(next.state.cards[id]))next.state.cards[id]=clone(s);}
@@ -27,6 +27,7 @@
     const removed=new Set();
     for(const e of [...events.values()].sort((a,b)=>a.at-b.at||a.id.localeCompare(b.id))){const c=e.change;
       for(const id of c.deleted||[])deleted.add(id);
+      for(const id of c.deletedDecks||[])deletedDecks.add(id);
       for(const card of c.cards||[])if(card?.id){const old=cards.get(card.id);if(!old||(card.updatedAt||0)>=(old.updatedAt||0))cards.set(card.id,clone(card));}
       for(const deck of c.decks||[])if(deck?.id)decks.set(deck.id,clone(deck));
       for(const [id,s]of Object.entries(c.states||{})){if(s===null)delete next.state.cards[id];else next.state.cards[id]=clone(s);}
@@ -34,7 +35,7 @@
       for(const key of c.removedLogs||[])removed.add(key);
     }
     // A deletion is durable; old cards and their review history remain recoverable in GitHub.
-    next.cards=[...cards.values()].filter(c=>!deleted.has(c.id));next.decks=[...decks.values()];
+    next.cards=[...cards.values()].filter(c=>!deleted.has(c.id));next.decks=[...decks.values()].filter(d=>!deletedDecks.has(d.id));
     next.state.log=[...logs].filter(([k])=>!removed.has(k)).map(([,e])=>e).sort((a,b)=>Number(a[1])-Number(b[1])||logKey(a).localeCompare(logKey(b)));
     return {payload:next,deleted:[...deleted].sort(),clock:[...events.values()].reduce((latest,e)=>Math.max(latest,e.at),0)};
   }
@@ -46,6 +47,7 @@
       const changed=after[key].map(x=>name==='cards'?cleanCard(x):x).filter(x=>old.get(x.id)!==JSON.stringify(x));if(changed.length)c[name]=changed;
     }
     const present=new Set(after.cards.map(x=>x.id)),deleted=before.cards.filter(x=>!present.has(x.id)).map(x=>x.id);if(deleted.length)c.deleted=deleted;
+    const presentDecks=new Set(after.decks.map(x=>x.id)),deletedDecks=before.decks.filter(x=>!presentDecks.has(x.id)).map(x=>x.id);if(deletedDecks.length)c.deletedDecks=deletedDecks;
     const states={};for(const id of new Set([...Object.keys(before.state.cards),...Object.keys(after.state.cards)])){if(JSON.stringify(before.state.cards[id])!==JSON.stringify(after.state.cards[id]))states[id]=after.state.cards[id]??null;}if(Object.keys(states).length)c.states=states;
     const oldLog=new Map(before.state.log.map(x=>[logKey(x),x])),newLog=new Map(after.state.log.map(x=>[logKey(x),x]));
     const added=[...newLog].filter(([k])=>!oldLog.has(k)).map(([,v])=>v),removed=[...oldLog.keys()].filter(k=>!newLog.has(k));
@@ -55,7 +57,8 @@
     const own=documents.filter(d=>d.kind==='journal'&&d.deviceId===deviceId).sort((a,b)=>a.sequence-b.sequence);own.forEach(validateDoc);
     const seen=new Map(own.flatMap(d=>d.events).map(e=>[e.id,JSON.stringify(e)])),missing=[];
     for(const e of pending){if(seen.has(e.id)){if(seen.get(e.id)!==JSON.stringify(e))throw new Error('재전송할 학습 기록의 내용이 달라졌습니다.');}else{seen.set(e.id,JSON.stringify(e));missing.push(e);}}
-    const files={};let seq=own.at(-1)?.sequence||0,events=[...(own.at(-1)?.events||[])],dirty=false;
+    const latest=own.filter(d=>!d.immutable).at(-1);
+    const files={};let seq=latest?.sequence||0,events=[...(latest?.events||[])],dirty=false;
     const flush=()=>{if(dirty)files[PREFIX+deviceId+'-'+String(seq).padStart(5,'0')+'.json']={schema:1,kind:'journal',deviceId,sequence:seq,events};events=[];seq++;dirty=false;};
     for(const e of missing){if(new TextEncoder().encode(JSON.stringify(e)).length>7000000)throw new Error('한 번의 변경이 너무 큽니다. 작은 묶음으로 나눠 주세요.');if(events.length&&JSON.stringify(events).length+JSON.stringify(e).length>250000)flush();events.push(e);dirty=true;}flush();return files;
   }

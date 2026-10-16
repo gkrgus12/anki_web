@@ -103,7 +103,7 @@
   restoreUserCards=function(){const list=JSON.parse(custom);const map=new Map(DATA.filter(c=>!deleted.has(c.id)).map(c=>[c.id,c]));for(const c of list)if(!deleted.has(c.id))map.set(c.id,c);DATA=[...map.values()];BYID={};DATA.forEach((c,i)=>{normalizeCard(c);c._i=i;BYID[c.id]=c;});};
   buildLocalSyncPayload=payload;executeGistSync=sync;
   applyMergedGistData=p=>apply(p);
-  scheduleGistAutoSync=function(delay=1500){if(timer)clearTimeout(timer);timer=setTimeout(()=>{timer=null;sync(false);},delay);};
+  scheduleGistAutoSync=function(delay=0){if(timer)clearTimeout(timer);timer=setTimeout(()=>{timer=null;sync(false);},delay);};
   // All legacy collection/repository writers are routed through the one journal transport.
   push=async()=>sync(false);refreshRemote=async()=>{lastRefreshAt=Date.now();return sync(false);};loadAll=async()=>{};loadData=async()=>{};loadWeeks=async()=>false;
   const oldPushLog=pushLog;pushLog=function(entry){entry[3]={...(entry[3]||{}),sienId:crypto.randomUUID()};return oldPushLog(entry);};
@@ -123,5 +123,23 @@
     }catch(e){error(e);}
   }};
   window.addEventListener('online',()=>scheduleGistAutoSync(0));
-  window.addEventListener('pagehide',()=>{try{capture();}catch(e){error(e);}});
+  function leave(){
+    try{
+      capture();clearTimeout(timer);timer=null;
+      const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId||!deviceId)return;
+      const files={};
+      for(const event of pending()){
+        const name=S.PREFIX+deviceId+'-exit-'+event.id+'.json';
+        files[name]={content:JSON.stringify({schema:1,kind:'journal',deviceId,sequence:-1,immutable:true,events:[event]})};
+        if(new TextEncoder().encode(JSON.stringify({files})).length>55000){delete files[name];break;}
+      }
+      if(!Object.keys(files).length)return;
+      // A dedicated immutable file can finish after close, without a read/merge round trip.
+      // Keep the outbox until the next normal sync confirms these same event IDs remotely.
+      void fetch('https://api.github.com/gists/'+cfg.gistId,{method:'PATCH',headers:{...gistHeaders(cfg.token),'Content-Type':'application/json'},body:JSON.stringify({files}),keepalive:true}).catch(()=>{});
+    }catch(e){console.warn('[동기화] 종료 시 미전송 기록은 다음 접속에서 다시 보냅니다.');}
+  }
+  window.addEventListener('pagehide',leave);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')leave();else scheduleGistAutoSync(0);});
+  window.addEventListener('pageshow',e=>{if(e.persisted)scheduleGistAutoSync(0);});
 })();
