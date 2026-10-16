@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261017-9">
-<script src="sien-study.js?v=20261017-9"></script>
-<script src="sien-render.js?v=20261017-9"></script>
+<link rel="stylesheet" href="sien.css?v=20261017-10">
+<script src="sien-study.js?v=20261017-10"></script>
+<script src="sien-render.js?v=20261017-10"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -1725,13 +1725,8 @@ button.sc-err{background:none;border:0;text-align:left;cursor:pointer;font:inher
 .sc-card{background:var(--c-card);border-radius:var(--r-group);box-shadow:var(--sh-card);padding:12px 20px 16px;display:flex;flex-direction:column;}
 .sc-card .sc-det{padding:0;}
 .sc-card .sc-h:first-child{margin-top:4px;}
-/* 풀이 중 스터디 = 레일을 「피드백 ↔ 스터디」로 전환해 띄워 둔다(10-05 동하 「눌러서 보는 거 말고 띄워 놓고 풀 수 있는 거 · 아이폰에선 안 돼도 됨 ·
-   레일 사이 빈 공간은 너무 좁으니 레일 스터디 전환하는 식으로」) — 아이패드 가로(레일이 붙어 있는 폭)만 · 위 막대 사람 단추 = 전환(기기에 기억) · 덮는 창이 아니라 키를 막지 않는다 */
-#btnStudy{display:none;}
-/* 스터디일 때 레일을 넓힌다(동하 10-05 「스터디 레일 너무 좁은데」) — 카드 열 오른쪽 여백·위 막대 칸이 같은 --insp-w를 쓰니 겹치지 않는다(카드 열이 그만큼 준다) ·
-   전환은 가로에서만 — 세로·좁은 폭의 서랍은 늘 피드백 */
-@media (min-width:1120px) and (orientation:landscape){ #btnStudy.on{display:flex;} body.sc-rail{--insp-w:340px;}
-  #rail.sc-on>:not(#railSc){display:none!important;} #rail.sc-on #railSc{display:flex;flex:1 1 auto;} }
+/* Study tab is available on phones and desktop. */
+#btnStudy{display:flex;}
 #btnStudy.pin{color:var(--c-acc);}
 #railSc{display:none;flex-direction:column;min-height:0;}
 #railSc{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:manipulation;}   /* manipulation = 두 번 톡 확대를 끈다(찌르기 · 10-07) */
@@ -2573,7 +2568,7 @@ setTimeout(function(){
     <div id="topbar">
       <div class="tb-l"><button class="tb-btn glass-c" id="btnHome" title="홈" aria-label="홈으로"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><span id="saveBadge" title="미저장분 있음"></span></div>
       <div id="tbProg"><span id="tbSess"></span><span class="tb-pbar"><span id="tbBar"></span></span><span id="tbCounts"></span><span id="tbReCount" style="display:none"></span></div>
-      <div class="tb-r"><button class="tb-btn" id="btnStudy" title="스터디" aria-label="스터디"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M17.5 14.7c1.6.7 2.7 2.4 3 4.8"/></svg></button><button class="tb-btn" id="btnPause" title="잠시 멈춤" aria-label="잠시 멈춤"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg></button><button class="tb-btn" id="btnUndo" title="되돌리기" aria-label="되돌리기" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="tb-btn" id="btnMore" title="피드백 · 이 카드" aria-label="피드백 · 이 카드"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></button></div>
+      <div class="tb-r"><button class="tb-btn" id="btnStudy" title="스터디" aria-label="스터디"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M17.5 14.7c1.6.7 2.7 2.4 3 4.8"/></svg></button><button class="tb-btn" id="btnPause" title="잠시 멈춤" aria-label="잠시 멈춤"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg></button><button class="tb-btn" id="btnUndo" title="되돌리기" aria-label="되돌리기" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="tb-btn" id="btnMore" title="카드 정보 · 스터디" aria-label="카드 정보 · 스터디"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></button></div>
     </div>
 
     <!-- 풀이 -->
@@ -2615,7 +2610,7 @@ setTimeout(function(){
           </div></div>
         </div>
       </div>
-      <div id="ohBar"><button class="tb-btn" id="ohPause" aria-label="잠시 멈춤"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg></button><div id="ohWhy"></div><button class="tb-btn" id="ohUndo" aria-label="되돌리기" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="tb-btn" id="ohMore" aria-label="피드백 · 이 카드"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></button></div>
+      <div id="ohBar"><button class="tb-btn" id="ohPause" aria-label="잠시 멈춤"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg></button><div id="ohWhy"></div><button class="tb-btn" id="ohUndo" aria-label="되돌리기" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="tb-btn" id="ohMore" aria-label="카드 정보 · 스터디"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></button></div>
       <div id="gradeBar">
         <button id="revealBtn">정답 보기<span class="keycap">C</span></button>
         <button class="gbtn" id="gAgain"><span class="gl">다시</span><span class="gi" id="giAgain"></span><span class="keycap">Z</span></button>
@@ -3109,25 +3104,29 @@ setTimeout(function(){
   </div>
 
   <!-- 사이드바 -->
-  <div id="rail" style="display:none">
-    <div class="rail-grp">피드백</div>
+  <div id="rail" class="sien-rail" style="display:none" aria-label="카드 정보와 스터디">
+    <div class="sien-rail-head"><div role="tablist" aria-label="학습 패널"><button id="railCardTab" role="tab" aria-controls="railCard" aria-selected="true">카드 정보</button><button id="railStudyTab" role="tab" aria-controls="railSc" aria-selected="false" tabindex="-1">스터디</button></div><button id="railClose" aria-label="학습 패널 닫기">×</button></div>
+    <div id="railCard" role="tabpanel" aria-labelledby="railCardTab">
+    <div id="railCardFacts"></div>
+    <div class="rail-grp">표시 · 메모</div>
     <button class="rbtn" id="rFlag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 21V6h11l-2 4 2 4h-11"/></svg>플래그<span class="st">●</span></button>
     <div id="flagTypes"></div>
     <div id="flagMemoRow"><input id="flagMemo" type="text" placeholder="메모 (선택)" maxlength="120"></div>
     <div class="rail-sep"></div>
     <div class="rail-grp">이 카드</div>
     <button class="rbtn" id="rBury"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg>내일로</button>
-    <button class="rbtn" id="rInfo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg>카드 정보</button>
+    <button class="rbtn" id="rInfo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg>상세 정보 · 학습 기록</button>
     <button class="rbtn" id="rCopy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>카드 내용 복사</button>
     <!-- @주석 「추가」(지도·사례·정의·이름) 버튼은 09-24 동하 결정으로 뺐다 — 지도·이름 사용 0 · 사례 = 칩 「사례 추가」 · 정의 = 메모.
          이미 달린 @주석은 「플래그 · @주석」 목록과 is:ann 검색에서 그대로 읽힌다(쓰기만 없앴다). -->
-    <div id="railSc"></div>   <!-- 스터디(10-05 · 아이패드 가로) -->
     <div class="rail-bottom">
       <button class="rbtn" id="rOffAll" style="display:none" title="같은 열거에서 쪼개진 낱장 전부 끄기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="7" height="6" rx="1.5"/><rect x="14" y="5" width="7" height="6" rx="1.5"/><rect x="3" y="14" width="7" height="6" rx="1.5"/><path d="M15 17l2 2 4-4"/></svg><span id="rOffAllLab">형제 끄기</span></button>
       <button class="rbtn" id="rOff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.4 7.2a7.5 7.5 0 1 0 11.2 0"/></svg>끄기</button>
     </div>
+    </div>
+    <div id="railSc" role="tabpanel" aria-labelledby="railStudyTab" hidden></div>
   </div>
-  <button id="railFab">☰</button>
+  <button id="railFab" aria-label="카드 정보와 스터디">☰</button>
   <div id="railScrim"></div>
 </div>
 
@@ -9905,7 +9904,7 @@ function syncRail(){
   { const n=c?blSiblings(c).length:0; $('rOffAll').style.display=n?'':'none'; $('rOffAllLab').textContent='형제 '+(n+1)+'장 끄기'; }
   $('flagMemoRow').classList.toggle('on', !!(s&&s.flag!=null));
   $('flagMemo').value = memoWas = (s&&s.flag)||''; memoFor=c?c.id:null;
-  renderFlagChips(s);
+  renderFlagChips(s); renderRailCardInfo(c,s);
 }
 /* 칩은 **플래그 전에도 보인다** — 안 그러면 「플래그 → 칩」 두 번이 된다.
    🔴 **카드마다 다시 그린다** — `FLAG_TYPES`에서 뺀 옛 사유(09-02의 `답면 오류`)를 이미 달아 둔
@@ -9996,7 +9995,27 @@ $('cTagInput').addEventListener('change',()=>{
 function removeCurFromQueue(sn){ // sn을 주면 되돌리기 스택에 쌓는다 (내일로·은퇴·끄기)
   queue.splice(qPos,1); undoSnap=null; if(sn)undoPush(sn);
   updateUndo(); showCard(); syncSessQueue(); }
-function openRailDrawer(){ $('rail').classList.add('open'); $('railScrim').classList.add('show'); }
+function renderRailCardInfo(c,s){
+  const box=$('railCardFacts');if(!c){box.textContent='현재 카드가 없습니다.';return;}
+  const f=s?.fsrs, phase=['신규','학습 중','복습','재학습'][f?.state||0]||'신규';
+  const date=v=>{const d=new Date(v);return v&&Number.isFinite(+d)?d.toLocaleString('ko-KR',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';};
+  const row=(label,value)=>'<div><dt>'+esc(label)+'</dt><dd>'+esc(String(value))+'</dd></div>';
+  box.innerHTML='<div class="sien-rail-deck">'+esc(scopeOf(c)||'')+'</div><h2>'+esc(String(c.front||'').split('\n')[0])+'</h2><dl>'+
+    row('상태',s?.retired?'학습 제외':phase)+row('풀이 횟수',(f?.reps||0)+'회')+
+    row('현재 복습 간격',f?.state===2?(f.scheduled_days||0)+'일':f?'학습 단계':'—')+
+    row('다음 복습',date(f?.due))+row('최근 답변',date(f?.last_review))+'</dl>';
+}
+function setRailView(study){commitMemo();lsSet(K_SC_DOCK,study?'1':'0');scRenderDock();}
+function closeRailDrawer(){ $('rail').classList.remove('open');$('railScrim').classList.remove('show'); }
+$('railCardTab').onclick=()=>setRailView(false);
+$('railStudyTab').onclick=()=>setRailView(true);
+$('railClose').onclick=()=>{closeRailDrawer();$('btnMore').focus();};
+$('rail').querySelector('[role=tablist]').addEventListener('keydown',e=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+  e.preventDefault();e.stopPropagation();
+  const study=e.key==='End'||(e.key!=='Home'&&!scDockOn());setRailView(study);$(study?'railStudyTab':'railCardTab').focus();
+});
+function openRailDrawer(){ syncRail(); $('rail').classList.add('open'); $('railScrim').classList.add('show'); }
 $('railFab').onclick=openRailDrawer; $('btnMore').onclick=openRailDrawer; $('ohMore').onclick=openRailDrawer;
 $('ohPause').onclick=()=>pauseSession();
 $('ohUndo').onclick=()=>$('btnUndo').click();
@@ -10107,7 +10126,7 @@ if(btnCopyB){
 }
 $('rInfo').onclick=()=>{ const c=cur(); if(!c) return;
   openCardSheet(c, ()=>{ const k=cur(); if(k && (offed(k)||buried(k)||retired(k))) showCard(); else syncRail(); }); };
-$('railScrim').onclick=()=>{ $('rail').classList.remove('open'); $('railScrim').classList.remove('show'); };
+$('railScrim').onclick=closeRailDrawer;
 
 /* ═══════════════ 카드 탭·스와이프 ═══════════════ */
 let lastSwipeAt=0;
@@ -11411,7 +11430,7 @@ function siteRender(){ const b=$('siteBody'); if(!b || !$('scrSite').classList.c
       +`<div class="sc-line sc-hint" style="margin-top:6px">원문은 「시트 열기」로 봐요 — 여기엔 시각·과목·처리 상태만 와요(공개 저장소라서) · 테스트 ${c('test')}건은 숨김</div></div></div>`); }
   b.innerHTML=L.join(''); const rf=$('siteRf'); if(rf) rf.onclick=siteRefresh; }
 
-/* 풀이 중 스터디 = 레일 전환(10-05) — 사람 줄(점 · 이름 · 상태·시간 · 장수/목표) · 내 줄은 채점마다(syncRail) · 친구는 동기화(30초)마다 다시 그린다 · 기본 = 피드백 */
+/* 풀이 중 스터디 = 레일 전환(10-05) — 사람 줄(점 · 이름 · 상태·시간 · 장수/목표) · 내 줄은 채점마다(syncRail) · 친구는 동기화(30초)마다 다시 그린다 · 기본 = 카드 정보 */
 const K_SC_DOCK='cards_sc_dock_v1';
 function scDockOn(){ return lsGet(K_SC_DOCK)==='1'; }
 /* 실시간 중심(동하 10-05 「좌우 넓히고 처음 보여 줬던 느낌으로 정보량 · 일 단위보단 실시간 중심」) — 사람마다 펼친 카드:
@@ -11425,9 +11444,13 @@ function scLiteStrip(bs, c){ let r='';   // c = 그 사람 색(10분 1등 띠와
     +`<div class="rs-ax">${[0,36,72,108,144].map(sl=>`<span>${scSlotHM(sl%SC_SLOTS).slice(0,2)}</span>`).join('')}</div></div>`; }
 const scClock=s=>{ const m=Math.floor((s||0)/60); return Math.floor(m/60)+':'+String(m%60).padStart(2,'0'); };   // 레일 칸 — 1:42
 function scAgo(t){ if(!isFinite(t)) return ''; const d=Math.max(0,Date.now()-t)/1000; return d<60?'방금':d<3600?Math.floor(d/60)+'분 전':scHM(t); }
-function scRenderDock(){ const box=$('railSc'); if(!box) return; const has=!!SC.group, on=has&&scDockOn();
-  $('btnStudy').classList.toggle('on', has); $('btnStudy').classList.toggle('pin', on); $('rail').classList.toggle('sc-on', on); document.body.classList.toggle('sc-rail', on);
-  if(!on){ box.innerHTML=''; return; }
+function scRenderDock(){ const box=$('railSc'); if(!box) return; const has=!!SC.group, on=scDockOn();
+  $('btnStudy').classList.toggle('pin',on);$('btnStudy').setAttribute('aria-pressed',String(on));
+  $('rail').classList.toggle('sc-on',on);document.body.classList.toggle('sc-rail',on);
+  $('railCard').hidden=on;box.hidden=!on;
+  for(const [id,selected]of [['railCardTab',!on],['railStudyTab',on]]){const tab=$(id);tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;}
+  if(!on){box.innerHTML='';return;}
+  if(!has){box.innerHTML='<div class="sien-rail-empty"><h2>함께 공부하기</h2><p>기존 스터디 계정으로 로그인하면 멤버들의 공부 현황이 여기에 표시됩니다.</p><button class="btn-primary" id="railStudyLogin">스터디 로그인 · 방 선택</button></div>';$('railStudyLogin').onclick=()=>{closeRailDrawer();go('scrStudy');};return;}
   const me=SC.auth&&SC.auth.user_id, t=scToday(), myS=scStatus(), fresh=SC.memDay===scDay(Date.now()), nowSl=scSlot(Date.now());
   const rank={studying:0, paused:1, online:2, offline:3};
   let rows=(SC.members||[]).filter(m=>m.user_id!==me).sort((a,b)=>rank[scMemberStatus(a)]-rank[scMemberStatus(b)] || (b.answer_count||0)-(a.answer_count||0));
@@ -11455,7 +11478,7 @@ function scRenderDock(){ const box=$('railSc'); if(!box) return; const has=!!SC.
   const tot=rows.reduce((a,m)=>a+(m.mine?t.n:(fresh?(m.answer_count||0):0)),0);
   box.innerHTML=`<div class="rs-h"><span class="rs-room">${esc(SC.group.name||'스터디')}</span><span class="rs-n">${nStudy}명 접속 중</span></div>${(()=>{ const L=scLeaderData(); return Object.keys(L.slots).length?`<div class="rs-lead"><div class="rs-l0">10분 1등</div>${scLeadStrip(L,'rs-strip')}</div>`:''; })()}${html}`
     +`<div class="rs-foot">방 오늘 ${tot.toLocaleString()}장${SC.err?' · 친구 기록을 못 받았어요':SC.membersAt?` · ${scHM(SC.membersAt)}에 받음`:''}</div>`; }
-$('btnStudy').onclick=()=>{ lsSet(K_SC_DOCK, scDockOn()?'0':'1'); scRenderDock(); };
+$('btnStudy').onclick=()=>{setRailView(true);if(!matchMedia('(min-width:1120px) and (orientation:landscape)').matches)openRailDrawer();};
 /* 레일 찌르기 = 친구 칸 두 번 톡(10-07 동하 — 칸에 버튼·글자·알약·한 줄 모음을 얹는 안 다 기각 · 한 번 톡은 잘못 누른다).
    레일은 30초·실시간마다 다시 그려진다 → 상자에 위임 · 같은 칸 350ms·20px 안 · 스크롤은 pointercancel이라 안 잡힌다 */
 let scDbl=null; const scPokeFly=new Set();
@@ -18918,11 +18941,12 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261017-9"></script>
-<script src="sien-learning.js?v=20261017-9"></script>
-<script src="sien-keys.js?v=20261017-9"></script>
-<script src="sien-pokes.js?v=20261017-9"></script>
-<script src="sien-network.js?v=20261017-9"></script>
-<script src="sien-app.js?v=20261017-9"></script>
+<script src="sien-sm2.js?v=20261017-10"></script>
+<script src="sien-learning.js?v=20261017-10"></script>
+<script src="sien-keys.js?v=20261017-10"></script>
+<script src="sien-pokes.js?v=20261017-10"></script>
+<script src="sien-network.js?v=20261017-10"></script>
+<script src="sien-app.js?v=20261017-10"></script>
+<script src="sien-embed.js?v=20261017-10"></script>
 </body>
 </html>

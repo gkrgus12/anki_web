@@ -74,3 +74,31 @@ summary.sien-callout-title:focus-visible{outline:2px solid rgb(var(--callout-col
   .deck-section-wrap .deck-btn-opt{width:36px;height:44px}
   .deck-section-wrap .deck-desc{white-space:normal;overflow-wrap:anywhere;margin-top:4px;line-height:1.5}
 }
+
+/* The same card / companion tabs work in the desktop rail and mobile drawer. */
+body:has(#scrSolve.on){--insp-w:340px}
+#rail.sien-rail{overflow:hidden}
+.sien-rail-head{display:flex;align-items:center;gap:8px;flex-shrink:0;margin-bottom:12px}
+.sien-rail-head [role=tablist]{display:flex;flex:1;gap:4px;padding:4px;border-radius:14px;background:var(--c-fill)}
+.sien-rail-head [role=tab]{flex:1;min-height:40px;border:0;border-radius:10px;background:transparent;color:var(--c-sec);font:inherit;font-size:14px;font-weight:600;white-space:nowrap}
+.sien-rail-head [aria-selected=true]{background:var(--c-card);color:var(--c-label);box-shadow:0 1px 4px #0001}
+.sien-rail-head button:focus-visible{outline:2px solid var(--c-acc);outline-offset:2px}
+#railClose{width:40px;height:44px;flex-shrink:0;font-size:26px;background:none;color:var(--c-sec);border:0;border-radius:10px}
+#railCard{overflow:auto;min-height:0;flex:1;overscroll-behavior:contain}
+#rail.sien-rail.sc-on #railSc{display:flex;flex:1;overscroll-behavior:contain}
+#railCardFacts{padding:4px 12px 16px;margin-bottom:14px;border-bottom:1px solid var(--c-sep)}
+.sien-rail-deck{font-size:12px;color:var(--c-sec);overflow-wrap:anywhere}
+#railCardFacts h2{font-size:23px;line-height:1.5;margin:8px 0 18px;overflow-wrap:anywhere}
+#railCardFacts dl{margin:0;font-size:13px}
+#railCardFacts dl>div{display:flex;gap:16px;justify-content:space-between;margin:11px 0}
+#railCardFacts dt{color:var(--c-sec);flex-shrink:0}
+#railCardFacts dd{margin:0;text-align:right;color:var(--c-label);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#railCard .rail-bottom{margin-top:18px;border-top:1px solid var(--c-sep);padding-top:8px}
+.sien-rail-empty{padding:18px 12px;color:var(--c-sec);font-size:14px;line-height:1.7}
+.sien-rail-empty h2{font-size:20px;color:var(--c-label)}
+.sien-rail-empty button{margin-top:14px;min-height:44px;width:100%}
+@media(min-width:1120px) and (orientation:landscape){#railClose{display:none}}
+@media(max-width:1119px),(orientation:portrait){#rail.sien-rail{width:min(380px,calc(100vw - 20px));padding-bottom:calc(16px + env(safe-area-inset-bottom))}}
+@media(max-width:360px){#railSc .rs-p{padding-left:6px;padding-right:6px}#railSc .rs-top{gap:6px}#railSc .rs-nm{font-size:15px}#railSc .rs-st{font-size:11px}#railSc .rs-v b{font-size:16px}}
+
+.sien-embedded #btnGptFront,.sien-embedded #btnGptBack{display:none!important}
