@@ -41,3 +41,36 @@ summary.sien-callout-title:focus-visible{outline:2px solid rgb(var(--callout-col
 .sien-callout-body{white-space:normal}.sien-callout-body>:first-child{margin-top:8px}.sien-callout-body>:last-child{margin-bottom:0}
 .sien-note-quote{border-left:3px solid var(--line);padding-left:14px;margin:12px 0;color:var(--ink2)}
 @media(max-width:600px){.sien-note-callout{padding:11px 12px}.sien-callout-body .sien-note-callout{padding:10px}.sien-note-explanation ul,.sien-note-explanation ol{padding-left:1.2em}}
+
+/* Deck headings wrap independently; phone rows keep names above study counts. */
+.deck-section-wrap .sien-deck-header{flex-wrap:wrap;gap:12px;height:auto;min-height:32px;padding:0}
+.sien-deck-heading{display:flex;align-items:center;gap:10px;min-width:0}
+.sien-deck-heading h2{white-space:nowrap}
+#deckTotalCountBadge{white-space:nowrap;flex-shrink:0}
+.sien-deck-tools{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.sien-deck-stat-label{display:none}
+@media(max-width:900px){
+  .deck-section-wrap .sien-deck-header{display:block;margin-top:24px}
+  .sien-deck-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+  .sien-deck-tools .deck-act-btn{justify-content:center;height:40px;padding:0 6px;font-size:12px}
+  .deck-section-wrap .deck-tree-header{padding:10px 14px}
+  .deck-section-wrap .dth-right{display:none}
+  .deck-section-wrap .dth-left{width:100%;justify-content:space-between}
+  .deck-section-wrap .deck-tree-row{display:block;padding:14px}
+  .deck-section-wrap .deck-title-row{flex-wrap:wrap;gap:4px 8px}
+  .deck-section-wrap .deck-name{width:100%;font-size:16px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;text-overflow:clip}
+  .deck-section-wrap .deck-card-count{font-size:12px;color:var(--c-sec)}
+  .deck-section-wrap .deck-left-cell{align-items:flex-start;gap:8px}
+  .deck-section-wrap .deck-type-icon{margin-top:3px}
+  .deck-section-wrap .deck-tree-empty-toggle{display:none}
+  .deck-section-wrap .tree-indent-wrapper{max-width:48px;overflow:hidden}
+  .deck-section-wrap .deck-tree-toggle{width:28px;height:28px}
+  .deck-section-wrap .deck-right-cell{display:grid;grid-template-columns:minmax(0,1fr) 44px 36px;gap:8px;margin-top:12px}
+  .deck-section-wrap .anki-counts{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .deck-section-wrap .anki-counts .ac-badge{min-width:0;padding:5px 2px;font-size:14px;line-height:1.4}
+  .deck-section-wrap .sien-deck-stat-label{display:block;font-size:10px;font-weight:500}
+  .deck-section-wrap .deck-btn-study{min-height:44px;justify-content:center;padding:0}
+  .deck-section-wrap .deck-btn-study span{display:none}
+  .deck-section-wrap .deck-btn-opt{width:36px;height:44px}
+  .deck-section-wrap .deck-desc{white-space:normal;overflow-wrap:anywhere;margin-top:4px;line-height:1.5}
+}

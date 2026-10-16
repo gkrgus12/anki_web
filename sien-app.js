@@ -7,7 +7,32 @@
   const explicitUndo=new Set();
   const copy=x=>JSON.parse(JSON.stringify(x));
   const empty=()=>({version:1,cards:[],decks:[],state:{cards:{},log:[]}});
-  function error(e){setSyncStatusUI('error',e.message);showBanner(e.message||'학습 기록 저장에 실패했습니다. 이 창을 닫지 말고 다시 동기화해 주세요.',false);}
+  const N=SienNetwork,diagnostics=N.diagnostics(localStorage);
+  let failures=0,nextRetryAt=0,rateUntil=0,autoBlocked=false,lastExitPayload='',lastConfig=null;
+  const htmlText=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function pendingCount(){try{return pending().length;}catch{return 0;}}
+  function logFailure(e){diagnostics.add({outcome:'failure',code:e.code,stage:e.stage,status:e.status,durationMs:e.durationMs,pending:pendingCount(),hidden:document.visibilityState==='hidden'});}
+  function error(e){logFailure(e);setSyncStatusUI('error',e.message);showBanner(htmlText(e.message||'학습 기록을 저장하지 못했습니다. 이 창을 닫지 말고 다시 동기화해 주세요.'),false,'gist');}
+  function failed(e,manual){
+    logFailure(e);failures++;
+    if(e.retryable){
+      rateUntil=Math.max(rateUntil,e.retryAt||0);nextRetryAt=Date.now()+N.delay(e,failures)+Math.floor(Math.random()*1000);
+      setSyncStatusUI('pending');
+      if(document.visibilityState!=='hidden'&&(manual||failures>=3||e.code==='RATE_LIMIT'))showBanner(htmlText(e.message),false,'gist');
+      scheduleGistAutoSync();
+    }else{autoBlocked=true;setSyncStatusUI('error',e.message);showBanner(htmlText(e.message||'동기화 데이터를 확인하지 못했습니다.'),false,'gist');}
+    if(manual)toast(e.message);
+  }
+  function installDiagnostics(){
+    const host=$('gistConnectedView');if(!host||$('sienSyncLog'))return;
+    const details=document.createElement('details');details.id='sienSyncLog';details.style.marginTop='14px';
+    const summary=document.createElement('summary');summary.textContent='동기화 오류 내역';details.append(summary);
+    const note=document.createElement('p');note.className='desc';note.textContent='이 기기의 최근 오류와 복구 기록입니다. 토큰과 학습 내용은 포함하지 않습니다.';details.append(note);
+    const pre=document.createElement('pre');Object.assign(pre.style,{whiteSpace:'pre-wrap',overflowWrap:'anywhere',maxHeight:'220px',overflow:'auto',fontSize:'12px'});details.append(pre);
+    const button=document.createElement('button');button.className='btn-ghost';button.textContent='오류 내역 복사';
+    button.onclick=async()=>{try{await navigator.clipboard.writeText(diagnostics.text());toast('오류 내역을 복사했습니다');}catch{toast('아래 오류 내역을 선택하여 복사해 주세요');}};
+    details.append(button);details.ontoggle=()=>{if(details.open)pre.textContent=diagnostics.read().length?diagnostics.text():'아직 기록된 오류가 없습니다.';};host.append(details);
+  }
   async function put(key,value){const db=await idbOpen();try{await new Promise((resolve,reject)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('로컬 저장이 취소되었습니다.'));});}finally{db.close();}}
   function pending(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(PENDING)){const value=JSON.parse(localStorage.getItem(k));out.push(value);}}return out;}
   function payload(){return {version:1,cards:DATA.map(S.cleanCard),decks:copy(DECKS),state:{cards:copy(state.cards),log:copy(state.log)}};}
@@ -45,21 +70,23 @@
   async function api(cfg,method='GET',files){
     const opts={method,headers:gistHeaders(cfg.token),cache:'no-store'};
     if(files){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify({files:Object.fromEntries(Object.entries(files).map(([k,v])=>[k,{content:JSON.stringify(v)}]))});}
-    const r=await fetch('https://api.github.com/gists/'+cfg.gistId,opts);if(!r.ok)throw new Error('GitHub 동기화 실패 (HTTP '+r.status+'). 미전송 기록은 이 기기에 보관 중입니다.');
-    const g=await r.json();if(g.public||g.truncated||g.owner?.login?.toLowerCase()!==cfg.username?.toLowerCase())throw new Error('Gist 소유자 또는 전체 파일 목록을 확인할 수 없습니다.');return g;
+    const g=await N.request('https://api.github.com/gists/'+cfg.gistId,opts,method==='PATCH'?'write':'metadata');if(g.public||g.truncated||g.owner?.login?.toLowerCase()!==cfg.username?.toLowerCase())throw new Error('Gist 소유자 또는 전체 파일 목록을 확인할 수 없습니다.');return g;
   }
-  async function readFile(f){
-    if(fileCache.has(f.raw_url))return fileCache.get(f.raw_url);
-    let txt=f.content;if(f.truncated){const u=new URL(f.raw_url);if(u.protocol!=='https:'||u.hostname!=='gist.githubusercontent.com')throw new Error('원격 파일 주소가 올바르지 않습니다.');const r=await fetch(u.href,{cache:'no-store'});if(!r.ok)throw new Error('학습 기록 파일을 읽지 못했습니다.');txt=await r.text();}
-    const v=JSON.parse(txt);fileCache.set(f.raw_url,v);return v;
+  async function readFile(f,name){
+    const cached=fileCache.get(name);if(f.raw_url&&cached?.url===f.raw_url)return cached.value;
+    let value;
+    if(f.truncated){const u=new URL(f.raw_url);if(u.protocol!=='https:'||u.hostname!=='gist.githubusercontent.com')throw new Error('원격 파일 주소가 올바르지 않습니다.');value=await N.request(u.href,{cache:'no-store'},'file');}
+    else try{value=JSON.parse(f.content);}catch{throw new N.Failure('DATA','file');}
+    fileCache.set(name,{url:f.raw_url,value});return value;
   }
+
   async function read(g){
     if(!g.files?.[WEB])throw new Error('기존 카드 파일을 찾지 못했습니다.');
-    const p=S.validPayload(await readFile(g.files[WEB])),docs=[],blocked=[];let vaultId='';
+    const p=S.validPayload(await readFile(g.files[WEB],WEB)),docs=[],blocked=[];let vaultId='';
     for(const [name,f]of Object.entries(g.files)){
-      if(name.startsWith(S.PREFIX)||name.startsWith(S.BASE))docs.push(S.validateDoc(await readFile(f)));
-      if(name.startsWith('sien-obsidian-lifecycle-')){const d=await readFile(f);if(d.schema!==1||!Array.isArray(d.blocked))throw new Error('삭제 보호 기록이 손상되었습니다.');blocked.push(...d.blocked);}
-      if(name==='sien-obsidian-base-v2.json')vaultId=(await readFile(f)).vaultId;
+      if(name.startsWith(S.PREFIX)||name.startsWith(S.BASE))docs.push(S.validateDoc(await readFile(f,name)));
+      if(name.startsWith('sien-obsidian-lifecycle-')){const d=await readFile(f,name);if(d.schema!==1||!Array.isArray(d.blocked))throw new Error('삭제 보호 기록이 손상되었습니다.');blocked.push(...d.blocked);}
+      if(name==='sien-obsidian-base-v2.json')vaultId=(await readFile(f,name)).vaultId;
     }
     return {p,docs,blocked,vaultId};
   }
@@ -70,6 +97,13 @@
   }
   async function runSync(manual=false){
     const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId)return false;
+    if(lastConfig&&(lastConfig.token!==cfg.token||lastConfig.gistId!==cfg.gistId)){autoBlocked=false;nextRetryAt=0;rateUntil=0;failures=0;fileCache.clear();}
+    lastConfig={token:cfg.token,gistId:cfg.gistId};
+    const wait=Math.max(rateUntil,manual?0:nextRetryAt)-Date.now();
+    if(wait>0){scheduleGistAutoSync();if(manual)toast('재시도까지 약 '+Math.ceil(wait/1000)+'초 기다립니다.');return false;}
+    if(autoBlocked&&!manual)return false;
+    if(document.visibilityState==='hidden'&&!manual)return false;
+    if(manual){autoBlocked=false;nextRetryAt=0;}
     if(isGistSyncing)return false;isGistSyncing=true;setSyncStatusUI('syncing');
     try{
       if(!navigator.locks)throw new Error('이 브라우저는 안전한 다중 탭 저장을 지원하지 않습니다. 최신 Chrome 또는 Edge로 열어 주세요.');
@@ -87,7 +121,7 @@
         }
         if(Object.keys(files).length){await api(cfg,'PATCH',files);remote=await read(await api(cfg));
           const stored=new Set(remote.docs.filter(d=>d.kind==='journal').flatMap(d=>d.events.map(e=>e.id)));
-          if(outbox.some(e=>!stored.has(e.id)))throw new Error('전송 완료를 확인하지 못했습니다. 같은 기록으로 다시 확인합니다.');
+          if(outbox.some(e=>!stored.has(e.id)))throw new N.Failure('UNCONFIRMED','verify',{retryable:true});
         }
         // A grade may arrive during either network request. Capture it before applying remote state.
         capture();const currentPending=pending();
@@ -98,9 +132,11 @@
         for(const e of outbox)localStorage.removeItem(PENDING+e.id);
         dirtyFiles.clear();dirtyLogs.clear();saveDirtyLogs();setDirty(pending().length>0);lastPushAt=Date.now();ratedSincePush=0;
         cfg.lastSyncAt=Date.now();saveGistConfig(cfg);setSyncStatusUI('synced');
+        if(failures)diagnostics.add({outcome:'recovered',stage:'verify',code:'LOCAL',pending:pendingCount(),hidden:document.visibilityState==='hidden'});
+        failures=0;nextRetryAt=0;rateUntil=0;autoBlocked=false;hideBanner('gist');
         if(manual)toast('동기화가 완료되었습니다');if(pending().length)scheduleGistAutoSync();return true;
       });
-    }catch(e){error(e);if(manual)toast(e.message);return false;}finally{isGistSyncing=false;lastGistPullTime=Date.now();}
+    }catch(e){failed(e,manual);return false;}finally{isGistSyncing=false;lastGistPullTime=Date.now();}
   }
   const oldGet=lsGet,oldSet=lsSet;
   lsGet=function(k){return k===getUserStorageKey('custom_cards')?custom:oldGet(k);};
@@ -108,9 +144,14 @@
   restoreUserCards=function(){const list=JSON.parse(custom);const map=new Map(DATA.filter(c=>!deleted.has(c.id)).map(c=>[c.id,c]));for(const c of list)if(!deleted.has(c.id))map.set(c.id,c);DATA=[...map.values()];BYID={};DATA.forEach((c,i)=>{normalizeCard(c);c._i=i;BYID[c.id]=c;});};
   buildLocalSyncPayload=payload;executeGistSync=sync;
   applyMergedGistData=p=>apply(p);
-  scheduleGistAutoSync=function(delay=0){if(timer)clearTimeout(timer);timer=setTimeout(()=>{timer=null;sync(false);},delay);};
+  scheduleGistAutoSync=function(delay=0){
+    if(timer)clearTimeout(timer);timer=null;
+    if(autoBlocked||document.visibilityState==='hidden')return;
+    const wait=Math.max(delay,nextRetryAt-Date.now(),rateUntil-Date.now(),0);
+    timer=setTimeout(()=>{timer=null;if(document.visibilityState!=='hidden')sync(false);},wait);
+  };
   // All legacy collection/repository writers are routed through the one journal transport.
-  push=async()=>sync(false);refreshRemote=async()=>{lastRefreshAt=Date.now();return sync(false);};loadAll=async()=>{};loadData=async()=>{};loadWeeks=async()=>false;
+  push=async(force=false)=>sync(!!force);refreshRemote=async()=>{lastRefreshAt=Date.now();return sync(false);};loadAll=async()=>{};loadData=async()=>{};loadWeeks=async()=>false;
   const oldPushLog=pushLog;pushLog=function(entry){entry[3]={...(entry[3]||{}),sienId:crypto.randomUUID()};return oldPushLog(entry);};
   const oldDropLog=dropLogEntry;dropLogEntry=function(entry){if(entry)explicitUndo.add(S.logKey(entry));return oldDropLog(entry);};
   const originalRate=rate;rate=function(...args){const r=originalRate(...args);try{capture();}catch(e){error(e);}return r;};
@@ -119,7 +160,8 @@
   const originalDelete=deleteCard;deleteCard=function(id){const r=originalDelete(id);try{capture();}catch(e){error(e);}return r;};
   const originalDecks=saveUserDecks;saveUserDecks=function(...args){const r=originalDecks(...args);queueMicrotask(()=>{try{capture();}catch(e){error(e);}});return r;};
   const originalSave=$('btnDoSaveCard')?.onclick;if(originalSave)$('btnDoSaveCard').onclick=function(...args){const r=originalSave.apply(this,args);try{capture();}catch(e){error(e);}return r;};
-  window.SienApp={capture,sync,async boot(){
+  window.SienApp={capture,sync,diagnostics:()=>diagnostics.read(),async boot(){
+    installDiagnostics();
     try{
       buildEngine();
       const cached=await idbGet(CACHE)||empty();
@@ -127,11 +169,11 @@
       if(getGistConfig()?.token)await sync(false);
     }catch(e){error(e);}
   }};
-  window.addEventListener('online',()=>scheduleGistAutoSync(0));
+  window.addEventListener('online',()=>{nextRetryAt=0;scheduleGistAutoSync(0);});
   function leave(){
     try{
       capture();clearTimeout(timer);timer=null;
-      const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId||!deviceId)return;
+      const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId||!deviceId||autoBlocked||Date.now()<rateUntil)return;
       const files={};
       for(const event of pending()){
         const name=S.PREFIX+deviceId+'-exit-'+event.id+'.json';
@@ -139,9 +181,10 @@
         if(new TextEncoder().encode(JSON.stringify({files})).length>55000){delete files[name];break;}
       }
       if(!Object.keys(files).length)return;
+      const body=JSON.stringify({files});if(body===lastExitPayload)return;lastExitPayload=body;
       // A dedicated immutable file can finish after close, without a read/merge round trip.
       // Keep the outbox until the next normal sync confirms these same event IDs remotely.
-      void fetch('https://api.github.com/gists/'+cfg.gistId,{method:'PATCH',headers:{...gistHeaders(cfg.token),'Content-Type':'application/json'},body:JSON.stringify({files}),keepalive:true}).catch(()=>{});
+      void fetch('https://api.github.com/gists/'+cfg.gistId,{method:'PATCH',headers:{...gistHeaders(cfg.token),'Content-Type':'application/json'},body,keepalive:true}).then(r=>{if(!r.ok)lastExitPayload='';}).catch(()=>{lastExitPayload='';});
     }catch(e){console.warn('[동기화] 종료 시 미전송 기록은 다음 접속에서 다시 보냅니다.');}
   }
   window.addEventListener('pagehide',leave);

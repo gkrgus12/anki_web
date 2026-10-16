@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261016-8">
-<script src="sien-study.js?v=20261016-8"></script>
-<script src="sien-render.js?v=20261016-8"></script>
+<link rel="stylesheet" href="sien.css?v=20261017-9">
+<script src="sien-study.js?v=20261017-9"></script>
+<script src="sien-render.js?v=20261017-9"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -2651,14 +2651,14 @@ setTimeout(function(){
         <div id="todayAgainBox" style="margin:16px 0 8px;display:none;"></div>
         <!-- Anki 스타일 덱 허브 (내 덱 목록) -->
         <div class="deck-section-wrap" style="margin:20px 0 12px;">
-          <div class="h-sec2" style="margin-bottom:10px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <h2>내 덱 (Decks)</h2>
+          <div class="h-sec2 sien-deck-header" style="margin-bottom:10px;">
+            <div class="sien-deck-heading">
+              <h2>내 덱</h2>
               <span id="deckTotalCountBadge" class="ac-badge ac-new" style="font-size:12px;padding:2px 8px;">0개 덱</span>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;">
+            <div class="sien-deck-tools">
               <button class="deck-act-btn" id="btnOpenNewDeck" title="새 덱 만들기">+ 새 덱</button>
-              <button class="deck-act-btn" id="btnExportAllApkgTop" title="전체 덱 Anki 내보내기 (복습 기록 포함)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>Anki 내보내기</button>
+              <button class="deck-act-btn" id="btnExportAllApkgTop" title="전체 덱 Anki 내보내기 (복습 기록 포함)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>내보내기</button>
               <button class="deck-act-btn deck-act-primary" id="btnOpenImportTop" title="덱 가져오기 / 파일 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M12 3v13M7 11l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>덱 가져오기</button>
             </div>
           </div>
@@ -16850,9 +16850,9 @@ function renderDeckHub(){
       </div>
       <div class="deck-right-cell">
         <div class="anki-counts" title="신규(파랑) / 학습중(주황) / 복습대기(초록)">
-          <span class="${newClass}" title="신규: 오늘 남은 ${stats.new}장 (전체 ${stats.totalNew}장 중 하루 ${stats.opts.newLimit}장 한도)">${stats.new}</span>
-          <span class="${learnClass}" title="학습 중 카드: ${stats.learn}장">${stats.learn}</span>
-          <span class="${dueClass}" title="복습: 오늘 남은 ${stats.due}장 (전체 ${stats.totalDue}장 중 하루 ${stats.opts.reviewLimit}장 한도)">${stats.due}</span>
+          <span class="${newClass}" title="신규: 오늘 남은 ${stats.new}장 (전체 ${stats.totalNew}장 중 하루 ${stats.opts.newLimit}장 한도)"><span class="sien-deck-stat-label">신규</span>${stats.new}</span>
+          <span class="${learnClass}" title="학습 중 카드: ${stats.learn}장"><span class="sien-deck-stat-label">학습</span>${stats.learn}</span>
+          <span class="${dueClass}" title="복습: 오늘 남은 ${stats.due}장 (전체 ${stats.totalDue}장 중 하루 ${stats.opts.reviewLimit}장 한도)"><span class="sien-deck-stat-label">복습</span>${stats.due}</span>
         </div>
         <button type="button" class="deck-btn-study btn-study-deck" title="이 덱 학습 시작">
           <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11"><path d="M7 4.8v14.4a1 1 0 0 0 1.5.86l11.6-7.2a1 1 0 0 0 0-1.72L8.5 3.94A1 1 0 0 0 7 4.8z"/></svg><span>학습</span>
@@ -18675,7 +18675,10 @@ function setSyncStatusUI(status, err){
     if(badgeLabel) badgeLabel.textContent = cfg.username || '동기화됨';
     if(statusBadge) { statusBadge.textContent = 'Gist 연동'; statusBadge.className = 'ac-badge ac-new'; }
     if(stateBadge) {
-      if(status === 'error'){
+      if(status === 'pending'){
+        stateBadge.textContent = '재시도 대기';
+        stateBadge.className = 'ac-badge ac-due';
+      } else if(status === 'error'){
         stateBadge.textContent = '오류 발생';
         stateBadge.className = 'ac-badge ac-again';
       } else {
@@ -18915,10 +18918,11 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261016-8"></script>
-<script src="sien-learning.js?v=20261016-8"></script>
-<script src="sien-keys.js?v=20261016-8"></script>
-<script src="sien-pokes.js?v=20261016-8"></script>
-<script src="sien-app.js?v=20261016-8"></script>
+<script src="sien-sm2.js?v=20261017-9"></script>
+<script src="sien-learning.js?v=20261017-9"></script>
+<script src="sien-keys.js?v=20261017-9"></script>
+<script src="sien-pokes.js?v=20261017-9"></script>
+<script src="sien-network.js?v=20261017-9"></script>
+<script src="sien-app.js?v=20261017-9"></script>
 </body>
 </html>
