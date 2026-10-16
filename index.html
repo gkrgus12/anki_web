@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261016-6">
-<script src="sien-study.js?v=20261016-6"></script>
-<script src="sien-render.js?v=20261016-6"></script>
+<link rel="stylesheet" href="sien.css?v=20261016-7">
+<script src="sien-study.js?v=20261016-7"></script>
+<script src="sien-render.js?v=20261016-7"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -8206,11 +8206,6 @@ function refillSess(sx){ // 전체 범위 세션은 날이 바뀌면 스스로 �
    ⚠ **저장 큐는 그대로 둔다** — 지우면 되돌리기가 카드를 되살릴 자리를 잃는다. 세는 것만 바꾼다.
    ⚠ 그래서 되돌리기로 되살아날 카드는 이 숫자에 안 잡힌다. 「지금 풀 것」을 세는 값이므로 그게 맞다. */
 function sessRemain(sx){
-  if(sx && sx.asRe){
-    return (curSess&&curSess.id===sx.id)
-      ? queue.slice(qPos).filter(c=>!buried(c)&&!retired(c)&&!offed(c)).length
-      : sessCards(sx).filter(c=>!buried(c)&&!retired(c)&&!offed(c)).length;
-  }
   return (curSess&&curSess.id===sx.id)
     ? newCap(sx, queue.slice(qPos).filter(c=>!settledToday(c)&&!buried(c)&&!retired(c)&&!offed(c))).length   // 끈 카드 제외(F3-8)
     : newCap(sx, gateIn(sessCards(sx), null)).length; }   // 신규 하루 최대(10-03)도 같은 문   // 🔴 격리분(사슬·짝 키·방향) 전부 빼고 센다 — 숫자와 실제가 어긋나면 안 된다(F3-3: 사슬만 세던 것)
@@ -8746,9 +8741,8 @@ function dirIsolate(list, seed){
   return list.filter(c=>ok.has(c.id));                     // 담기는 순서는 그대로
 }
 function gateIn(cards, seed, raw){
-  /* raw = 사람이 카드를 집어 만든 세션(pick · 「바로 풀기」). 당일 재출 금지도 격리 셋도 **앱이 스스로 내미는 것**을 막는 규칙이라
-     지목한 카드에는 안 건다(전층 감사 F3-4: 오늘 채점된 카드의 32%가 말없이 거부됐다 · 08-30 「아무 말 없이 홈으로 튕김」과 같은 결). */
-  if(raw) return cards.slice();
+  // Explicit selections still obey the stored review date.
+  if(raw) return dropSettled(cards);
   /* 🔴 **최종 통과한 카드만 열쇠를 잡는다**(리뷰 09-23 G1 · 동하 「G1은 고치고」). 사슬 → 짝 키 → 방향 순으로 한 번만 거르면,
      앞 단계에서 자리(사슬 칸·짝 키)를 잡은 카드가 뒤 단계(방향)에서 빠질 때 **그 무리 전체가 그날 0장**이 됐다(09-22 29장 · 옛 카드 19장).
      빠진 카드를 풀에서 걷어내고 다시 거르면 무리의 다음 카드가 그 자리를 잡는다. 매 회 적어도 한 장이 걷히므로 끝난다(상한 8회). */
@@ -8947,18 +8941,6 @@ function playSess(sx){          // 세션 화면의 [이어가기] — 남은 �
       const rc=Object.create(c); rc._re=Math.max(1,+re||1); rc._at=gradeSeq; rc._day=todayKey(); ins.push([Math.min(queue.length, +at||0), rc]); }   // 회차 상한 없음(09-22)
     ins.sort((a,b)=>b[0]-a[0]); for(const [at,rc] of ins) queue.splice(at,0,rc);   // 뒤에서부터 끼워 자리가 안 밀린다
   }
-  if(sx.asRe && queue.length){
-    queue = queue.map(c => {
-      if(c && !c._re){
-        const rc = Object.create(c);
-        rc._re = 1;
-        rc._at = gradeSeq;
-        rc._day = todayKey();
-        return rc;
-      }
-      return c;
-    });
-  }
   // 🔴 저장된 큐를 이어 풀 때도 한 번 더 건다 — 큐는 조립 뒤에도 「내용 추가」로 뒤에 붙는다
   phase = stOnly(sx.how.status,'new') ? 'new' : 'review';
   sessionDone=0; doneCredited=0; newServed=0; undoSnap=null; undoRun++; updateUndo(); sessReset();
@@ -8970,7 +8952,7 @@ function playSess(sx){          // 세션 화면의 [이어가기] — 남은 �
     /* 🔴 「오늘 이미 푼 것뿐」과 「격리로 오늘 못 냄」은 다른 말이다 (전층 감사 F3-3 잔여 · F3-6).
        전부 짝 키·방향 보류인 세션에서 「오늘 이미 푼 카드뿐이에요」는 사실이 아니었다. */
     if(all.length){ const note=holdNote(holdReasons(all, null));
-      toast(note || '오늘 이미 푼 카드뿐이에요'); }
+      toast(note || '지금 복습할 카드가 없어요. 예정일에 다시 나옵니다.'); }
     finishSess();
   } else showCard();
 }
@@ -9175,10 +9157,7 @@ function counts(){ // 상단 바 — 남은 수는 현재 세션 큐 · 「내�
      남은 수도 `queue.length-qPos`라 **미룸·은퇴·오늘 정리분까지 셌다**(실측 19 vs 실제 18) —
      화면이 건너뛰는 카드를 세면 그 수는 영영 0이 안 된다. 세는 술어를 화면과 맞춘다.
      ⚠ 칸을 늘리지 않는다(좁은 폰에서 숫자줄이 2단이 된다) — 섞였으면 「남음」이라고 말한다. */
-  const isAsRe = !!(curSess && curSess.asRe);
-  const rest = isAsRe
-    ? queue.slice(qPos).filter(c => !buried(c) && !retired(c) && !offed(c))
-    : dropSettled(queue.slice(qPos));
+  const rest=dropSettled(queue.slice(qPos));
   let nw=0; for(const c of rest) if(isNew(c)) nw++;
   const label = nw===rest.length ? '신규' : (nw===0 ? '복습' : '남음');
   /* 🔴 **「내일」은 세 곳이 같은 수를 말한다** (09-01 감사 U3 · 2026-09-06 마감).
@@ -9194,14 +9173,9 @@ function counts(){ // 상단 바 — 남은 수는 현재 세션 큐 · 「내�
      다시 조립돼(playSess) 분모가 매번 줄고 막대가 0에서 다시 시작했다. 막대 = 오늘 이 세션에서 처음 채점한 수(pg) ÷ (그것 + 남은 첫 대면). 재출은 뺀다. */
   let bd=done, bt=tot;
   if(curSess){
-    if(isAsRe){
-      bd = qPos;
-      bt = tot;
-    } else {
-      const n=(curSess.pg&&curSess.pg.day===todayKey())?(curSess.pg.n||0):0;
-      bd=n;
-      bt=n+newCap(curSess, rest.filter(c=>!c._re)).length;
-    }
+    const n=(curSess.pg&&curSess.pg.day===todayKey())?(curSess.pg.n||0):0;
+    bd=n;
+    bt=n+newCap(curSess, rest.filter(c=>!c._re)).length;
   }
   $('tbSess').textContent = curSess ? curSess.name : (curPreset ? '풀이' : '');
   /* 🔴 숫자 = 푼 수/오늘 이 세션 몫(진행 막대의 분자/분모 · 동하 09-25 「110/159 식」) — 라벨 없이(폰 폭). */
@@ -9484,23 +9458,6 @@ function showHoedokLink(c){
 function showCard(){
   if(!SienLearning.prepare())return;
   $('card').classList.remove('rev');
-  /* 🔴 오늘 정리된 카드는 어떤 경로로 큐에 남아 있든 화면에 안 띄운다 — 규칙의 마지막 관문.
-     큐 조립 때(playSess·buildQueue)만 거르면 샌다: 세션 순서·설정을 바꾸면 저장 큐가
-     통째로 재주입되고, 다른 기기 채점은 병합으로 뒤늦게 들어온다. 두 경로 다 아래에서 막았지만,
-     여기서 한 번 더 거른다 — 조립 시점에 없던 사실이 나중에 생길 수 있는 구조라서.
-     당일 재출이 없어진 뒤로는 「오늘 채점된 카드」 전부가 대상이다. */
-  /* 🔴 예외 하나 — **사람이 그 카드를 집어서 만든 세션**(`pick`)은 안 거른다.
-     「바로 풀기」는 자동 조립이 아니라 지목이다. 당일 재출 금지는 **앱이 스스로 또 내미는 것**을
-     막는 규칙이지, 동하가 찍은 카드를 막는 규칙이 아니다(2026-08-30 실측: 오늘 푼 카드를
-     상세에서 「바로 풀기」하면 큐가 0장이 되어 **아무 말 없이 홈으로 튕겼다**). */
-  let skipped=0;
-  const picked = !!(curSess && curSess.pick);
-  // 오늘 푼 것 + 오늘 미룬 것을 건너뛴다 (미룸은 09-01 감사 🟡6 — dropSettled의 같은 처방)
-  /* 🔴 재출(`_re`)은 이 관문에서 면제다 — 정의상 **오늘 푼 카드**를 일부러 다시 내미는 것이라
-     `settledToday`에 그대로 걸린다(08-21 폐지 때 이 줄이 남았다). 나머지 술어는 그대로 적용한다:
-     재출 대기 중에 그 카드를 끄거나 내일로 미루면 안 나오는 게 맞다. */
-  while(!picked && queue[qPos] && ((!queue[qPos]._re && settledToday(queue[qPos]))||buried(queue[qPos])||retired(queue[qPos])||offed(queue[qPos]))){ qPos++; skipped++; }   // 끈 카드도(F3-8 — dropSettled와 같은 술어)
-  if(skipped) syncSessQueue();
   const c=cur();
   if(!c){ showSummaryOrNew(); return; }
   normalizeCard(c);
@@ -9625,6 +9582,7 @@ function scopeHtml(c){   // 경로 = 과목 › 갈래 › 주제 (과목 번호
 }
 function reveal(){
   const c=cur(); if(!c||revealed)return;
+  if(!SienLearning.ready(c)){showCard();return;}
   normalizeCard(c);
   revealed=true; revealAt=Date.now();
   /* 힌트 칩은 가림 면 안이라 답면에선 가림 면과 함께 visibility로 숨는다 — 여기서 치우면(display) 칸 높이가 바뀌어 선이 움직였다(09-24 실측 5px) */
@@ -9738,6 +9696,7 @@ function intervalsPreview(c){
 
 function rate(num){
   const c=cur(); if(!c||!revealed)return;
+  if(!SienLearning.ready(c)){showCard();toast('복습 예정 시간이 되어야 답변할 수 있어요');return;}
   if(Date.now()-revealAt < RATE_MIN_MS) return;   // 공개 직후 연타 — 위 주석
   const ts=Math.round(Date.now()/1000), now=new Date(ts*1000);
   // 🔴 채점 시각을 초로 끊는다 — FSRS fuzz 시드가 밀리초를 쓰기 때문에, 로그(초 단위)로 재계산할 때
@@ -13671,19 +13630,17 @@ function renderCardSheet(){
   $('csClose').onclick=closeCardSheet;
 }
 $('ovlCard').onclick=(e)=>{ if(e.target===$('ovlCard'))closeCardSheet(); };
-/* pick=true = **사람이 그 카드를 지목했다.** 오늘 이미 푼 카드도 거르지 않는다(playSess·showCard).
-   상세에서 「바로 풀기」한 한 장이 그렇다 — 목록 세션은 조건으로 뽑은 묶음이라 안 준다.
-   그쪽까지 주면 방금 푼 카드가 목록 세션에 섞여 되돌아온다. */
+/* Explicit selections and saved sessions obey the same review schedule. */
 function startAdHoc(cards, label, note, pick, asRe){ // 목록·상세에서 바로 풀기 = 임시 세션도 정식 세션으로 만든다
-  if(!cards.length){ toast('풀 카드가 없어요'); return; }
+  cards=dropSettled(cards);
+  if(!cards.length){ toast('지금 복습할 카드가 없어요. 예정일에 다시 나옵니다.'); return; }
   if(curSess) syncSessQueue();             // 하던 세션은 남은 큐 그대로 보존 (멀티세션)
   /* 🔴 mode는 반드시 'manual' — 임시 세션은 담은 카드만 푼다. 비우면 'auto'가 되어
      refreshRemote의 day 리셋에 휩쓸리고, 다음 렌더의 refill이 빈 범위 + status 'all'로
      전 카드를 채워 버린다 (감사 U1 — 재현 확정). */
   const sx=newSessObj(label||'임시 세션',
     {status:'all', order:'shuffle', weights:{}, limit:null, bury:false, newAfter:false}, {}, 'manual');
-  sx.q=cards.map(c=>c.id); sx.day=todayKey(); sx.temp=true; if(pick) sx.pick=true;
-  if(asRe) sx.asRe=true;
+  sx.q=cards.map(c=>c.id); sx.day=todayKey(); sx.temp=true;
   sessions.unshift(sx); saveSessionsFlush();
   playSess(sx);
   toast(note||`${cards.length}장 세션 — 채점은 정규로 반영돼요`);
@@ -17294,7 +17251,7 @@ function renderTodayAgainSection(){
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
             <span style="font-weight:700;font-size:15.5px;color:var(--c-red);">오늘 틀린 카드 (${againCards.length}장)</span>
           </div>
-          <div style="font-size:12.5px;color:var(--c-sec);line-height:1.4;">오늘 풀다 막혔던 카드들을 외울 때까지 즉시 복습해요.</div>
+          <div style="font-size:12.5px;color:var(--c-sec);line-height:1.4;">다시를 누른 카드는 정해진 학습 시간이 지난 뒤 나옵니다.</div>
         </div>
         <button id="btnPlayTodayAgain" class="deck-act-btn" style="background:var(--c-red);color:#fff;font-weight:700;padding:9px 15px;font-size:13.5px;border-radius:12px;white-space:nowrap;flex-shrink:0;">
           오답 복습
@@ -17302,7 +17259,7 @@ function renderTodayAgainSection(){
       </div>
     `;
     $('btnPlayTodayAgain').onclick = () => {
-      startAdHoc(againCards, '오늘 오답 복습', `오늘 틀린 카드 ${againCards.length}장 즉시 복습`, true, true);
+      startAdHoc(againCards, '오늘 오답 복습', `오늘 틀린 카드 ${againCards.length}장 예약 시간에 복습`, true, true);
     };
   } else {
     box.style.display = 'none';
@@ -18957,10 +18914,10 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261016-6"></script>
-<script src="sien-learning.js?v=20261016-6"></script>
-<script src="sien-keys.js?v=20261016-6"></script>
-<script src="sien-pokes.js?v=20261016-6"></script>
-<script src="sien-app.js?v=20261016-6"></script>
+<script src="sien-sm2.js?v=20261016-7"></script>
+<script src="sien-learning.js?v=20261016-7"></script>
+<script src="sien-keys.js?v=20261016-7"></script>
+<script src="sien-pokes.js?v=20261016-7"></script>
+<script src="sien-app.js?v=20261016-7"></script>
 </body>
 </html>

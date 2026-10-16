@@ -24,6 +24,7 @@
     chain=chain.then(()=>put(CACHE,now)).catch(error);
   }
   function apply(p,blocked=[]){
+    const displayed=$('scrSolve')?.classList.contains('on')?cur()?.id:null;
     S.validPayload(p);applying=true;
     try{
       deleted=new Set(blocked);DATA=p.cards.filter(c=>!deleted.has(c.id)).map(c=>copy(c));BYID={};
@@ -36,6 +37,10 @@
       if(Array.isArray(queue)){const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)).map(c=>Object.assign(c,BYID[c.id]||{}));queue=[...before,...rest];qPos=before.length;}
       baseline=payload();syncDeckDropdowns();renderDeckHub();renderHome();renderList();renderStats();
     }finally{applying=false;}
+    if(displayed&&$('scrSolve').classList.contains('on')){
+      if(cur()?.id!==displayed||!SienLearning.ready(cur()))showCard();
+      else if(revealed)intervalsPreview(cur());
+    }
   }
   async function api(cfg,method='GET',files){
     const opts={method,headers:gistHeaders(cfg.token),cache:'no-store'};
