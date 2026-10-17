@@ -1,5 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),D=require('./sien-day'),M=require('./sien-sm2');
 const entry=(id,time,phase,extra={})=>[id,Date.parse(time)/1000,3,{previousPhase:phase,...extra}];
+test('cached older HTML can load the updated scheduler before the shared day helper',()=>{
+ const vm=require('node:vm'),fs=require('node:fs'),path=require('node:path'),context={Date,Math};
+ vm.runInNewContext(fs.readFileSync(path.join(__dirname,'sien-sm2.js'),'utf8'),context);
+ const now=new Date('2026-10-17T20:00:00Z');assert.equal(context.SienSM2.next({},4,now,'card').fsrs.due,M.next({},4,now,'card').fsrs.due);
+});
 test('all calendars use the 04:00 Seoul boundary, including month/year rollover',()=>{
  assert.equal(D.key('2026-10-17T18:59:59Z'),'2026-10-17');assert.equal(D.key('2026-10-17T19:00:00Z'),'2026-10-18');
  assert.equal(D.key('2026-12-31T19:00:00Z'),'2027-01-01');assert.equal(D.due('2026-10-17T20:00:00Z',1),'2026-10-18T19:00:00.000Z');

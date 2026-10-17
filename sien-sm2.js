@@ -2,7 +2,12 @@
   'use strict';
   // Anki-style SM-2. The fsrs field is retained only as the existing sync wire format.
   const DAY=86400000,MAX=36500,copy=x=>JSON.parse(JSON.stringify(x));
-  const StudyDay=typeof module==='object'&&module.exports?require('./sien-day'):globalThis.SienDay;
+  const StudyDay=typeof module==='object'&&module.exports?require('./sien-day'):globalThis.SienDay||{
+    // Cached pre-update HTML does not load sien-day.js yet. Keep its scheduler
+    // functional until that page is refreshed, using the same Seoul boundary.
+    number:value=>Math.floor((+new Date(value)+5*3600000)/DAY),
+    due:(now,days)=>new Date((Math.floor((+new Date(now)+5*3600000)/DAY)+days)*DAY-5*3600000).toISOString()
+  };
   function dayNumber(value){return StudyDay.number(value);}
   function dayDue(now,days){return StudyDay.due(now,days);}
   function jitter(key){let h=2166136261;for(const c of key){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return(h>>>0)/4294967296;}
