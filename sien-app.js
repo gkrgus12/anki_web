@@ -12,6 +12,7 @@
   const N=SienNetwork,diagnostics=N.diagnostics(localStorage);
   let failures=0,nextRetryAt=0,rateUntil=0,autoBlocked=false,lastExitPayload='',lastConfig=null,exitSync=null,metadataCache=null,remoteWriteUntil=0;
   const htmlText=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const LIVE_INTERVAL=15000;let nextLiveAt=0;
   function pendingCount(){try{return pending().length;}catch{return 0;}}
   function logFailure(e){diagnostics.add({outcome:'failure',code:e.code,stage:e.stage,status:e.status,durationMs:e.durationMs,rate:e.rate,pending:pendingCount(),hidden:document.visibilityState==='hidden'});}
   function error(e){logFailure(e);setSyncStatusUI('error',e.message);showBanner(htmlText(e.message||'학습 기록을 저장하지 못했습니다. 이 창을 닫지 말고 다시 동기화해 주세요.'),false,'gist');}
@@ -94,7 +95,7 @@
     if(method==='GET'&&metadataCache?.etag)opts.headers['If-None-Match']=metadataCache.etag;
     if(files){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify({files:Object.fromEntries(Object.entries(files).map(([k,v])=>[k,{content:JSON.stringify(v)}]))});}
     let etag='',serverNow=Date.now(),notModified=false;
-    if(method==='GET')pace.markRead();else {pace.markWrite();metadataCache=null;}
+    if(method==='GET'){pace.markRead();nextLiveAt=Date.now()+LIVE_INTERVAL;}else {pace.markWrite();metadataCache=null;}
     const g=await N.request('https://api.github.com/gists/'+cfg.gistId,opts,method==='PATCH'?'write':'metadata',{
       cached:method==='GET'?metadataCache?.value:undefined,
       onResponse:r=>{notModified=r.status===304;etag=r.headers.get('etag')||'';serverNow=Date.parse(r.headers.get('date'))||Date.now();}
@@ -153,12 +154,12 @@
     capture();merged=merge();clock=Math.max(clock,merged.clock);apply(merged.payload,merged.deleted);
   }
   let activeSync=null;
-  function sync(manual=false){
-    if(exitSync)return exitSync.then(()=>sync(manual));
+  function sync(manual=false,passive=false){
+    if(exitSync)return exitSync.then(()=>sync(manual,passive));
     if(activeSync)return activeSync;
-    activeSync=runSync(manual).finally(()=>{activeSync=null;if(pendingCount()&&!autoBlocked)scheduleGistAutoSync();});return activeSync;
+    activeSync=runSync(manual,passive).finally(()=>{activeSync=null;if(pendingCount()&&!autoBlocked)scheduleGistAutoSync();});return activeSync;
   }
-  async function runSync(manual=false){
+  async function runSync(manual=false,passive=false){
     const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId)return false;
     if(lastConfig&&(lastConfig.token!==cfg.token||lastConfig.gistId!==cfg.gistId)){autoBlocked=false;nextRetryAt=0;rateUntil=0;failures=0;fileCache.clear();metadataCache=null;remoteWriteUntil=0;}
     lastConfig={token:cfg.token,gistId:cfg.gistId};
@@ -174,6 +175,7 @@
       if(!navigator.locks)throw new Error('이 브라우저는 안전한 다중 탭 저장을 지원하지 않습니다. 최신 Chrome 또는 Edge로 열어 주세요.');
       return await navigator.locks.request('sien-gist-'+cfg.gistId,async()=>{
         if(getGistConfig()?.gistId!==cfg.gistId||getGistConfig()?.token!==cfg.token)return false;
+        if(passive&&Date.now()<nextLiveAt)return false;
         const until=waitForRequest(cfg,pendingCount()>0);
         if(until>Date.now())return defer(until,manual);
         if(document.visibilityState==='hidden'&&!manual)return false;
@@ -248,6 +250,14 @@
     }catch(e){error(e);}
   }};
   window.addEventListener('online',()=>{nextRetryAt=0;scheduleGistAutoSync(0);});
+  // A web-only viewer receives edits without a grade, tab switch or Obsidian.
+  // At most four metadata checks/minute per visible view. Web Locks and the
+  // existing shared pacing still prevent overlapping requests across tabs.
+  setInterval(()=>{
+    if(!ready||activeSync||exitSync||timer||autoBlocked||document.visibilityState==='hidden'||navigator.onLine===false)return;
+    const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId)return;
+    if(Date.now()>=Math.max(nextLiveAt,waitForRequest(cfg,pendingCount()>0)))void sync(false,true);
+  },1000);
   function leave(){
     try{
       capture();clearTimeout(timer);timer=null;

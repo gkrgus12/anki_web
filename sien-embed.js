@@ -21,6 +21,12 @@
     button.append(word,hint);range.insertNode(button);
   }
   SienRender.render=(el,card,side)=>{nativeRender(el,card,side);decorate(el,card,side);};
+  function refresh(){
+    const c=cur();if(!c||!$('scrSolve').classList.contains('on'))return;
+    const scroller=$('cardScroll'),top=scroller?.scrollTop;
+    SienRender.render($('cFront'),c,'f');fillBack(c);
+    if(scroller&&top!==undefined)scroller.scrollTop=top;
+  }
   function resumeOwnPause(){if(pending?.paused&&pauseAt)resumeSession();pending=null;if(document.activeElement?.matches('.sien-source-word'))document.activeElement.blur();}
   document.addEventListener('click',e=>{
     const button=e.target.closest?.('.sien-source-word');
@@ -49,11 +55,9 @@
       resumeOwnPause();toast(d.message||'원본 노트를 열지 못했습니다.');return;
     }
     if(d?.type==='sien-note-returned'&&d.requestId===pending?.requestId){resumeOwnPause();return;}
-    if(d?.type==='sien-note-refresh'){
+    if(d?.type==='sien-note-refresh'||d?.type==='sien-note-published'&&Array.isArray(d.cardIds)&&d.cardIds.includes(cur()?.id)){
       await SienApp.sync();
-      const c=cur();if(c?.id===d.cardId&&c.sien?.v===1&&$('scrSolve').classList.contains('on')){
-        SienRender.render($('cFront'),c,'f');fillBack(c);
-      }
+      refresh();
     }
   });
   parent.postMessage({type:'sien-study-ready'},'*');
