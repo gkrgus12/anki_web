@@ -66,9 +66,15 @@
       ALLTAGS=[...new Set(DATA.flatMap(c=>c.tags||[]))];ALLTYPS=[...new Set(DATA.map(c=>c.typ).filter(Boolean))];SUBJECTS=[...new Set(DATA.map(c=>c.subj).filter(Boolean))];
       TREE=null;_prMemo=null;lastRevIdx=null;firstRevIdx=null;
       // Keep the current queue position; remove deleted entries without replaying answered cards.
-      if(Array.isArray(queue)){const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)).map(c=>BYID[c.id]?{...BYID[c.id],...Object.fromEntries(Object.entries(c).filter(([k])=>k.startsWith('_')&&k!=='_i'))}:c);queue=[...before,...rest];qPos=before.length;}
+      if(Array.isArray(queue)){
+        const activeDeck=curSess?.sienDeckId&&DECKS.find(d=>d.id===curSess.sienDeckId);
+        const allowed=activeDeck?new Set(deckDailyPlan(activeDeck).cards.map(c=>c.id)):null;
+        const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));
+        const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)&&(!allowed||allowed.has(c.id))).map(c=>BYID[c.id]?{...BYID[c.id],...Object.fromEntries(Object.entries(c).filter(([k])=>k.startsWith('_')&&k!=='_i'))}:c);
+        queue=[...before,...rest];qPos=before.length;
+      }
       sharedAppearance=S.appearance(p.appearance);receiveAppearance(sharedAppearance);_dueParts=null;
-      baseline=payload();syncDeckDropdowns();renderDeckHub();renderHome();renderList();renderStats();
+      baseline=payload();coalesceDeckSessions();syncDeckDropdowns();renderDeckHub();renderHome();renderList();renderStats();
     }finally{applying=false;}
     if(displayed&&$('scrSolve').classList.contains('on')){
       if(cur()?.id!==displayed||!SienLearning.ready(cur()))showCard();

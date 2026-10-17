@@ -53,9 +53,10 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261017-19">
-<script src="sien-study.js?v=20261017-19"></script>
-<script src="sien-render.js?v=20261017-19"></script>
+<link rel="stylesheet" href="sien.css?v=20261018-20">
+<script src="sien-day.js?v=20261018-20"></script>
+<script src="sien-study.js?v=20261018-20"></script>
+<script src="sien-render.js?v=20261018-20"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -5826,8 +5827,7 @@ function retrievability(f){ // 회상 확률 R (신규·미정의는 null)
 
 /* ═══════════════ 날짜 (4시 경계) ═══════════════ */
 const pad=n=>String(n).padStart(2,'0');
-function dayKey(d){ const t=new Date(d.getTime()-DAY_CUT*3600*1000);
-  return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`; }
+function dayKey(d){ return SienDay.key(d); }
 function todayKey(){ return dayKey(new Date()); }
 function dkAdd(k, n){                    // 'YYYY-MM-DD'에 n일 — 정오 기준이라 서머타임/경계에 안 흔들린다
   const d=new Date(k+'T12:00:00'); d.setDate(d.getDate()+n);
@@ -5949,7 +5949,7 @@ function weekKeyOf(d){            // ISO 주 (월요일 시작) — 하루 경�
   return `${y}-W${String(wk).padStart(2,'0')}`;
 }
 function thisWeek(){ return weekKeyOf(new Date()); }
-function logTs(e){ return typeof e[1]==='number' ? e[1]*1000 : Date.parse(e[1]); }  // v2=초, v1=ISO 문자열
+function logTs(e){ return SienDay.logMs(e); }
 function logDate(e){ return new Date(logTs(e)); }
 function tomorrowKey(){ return dayKey(new Date(Date.now()+86400000)); }
 
@@ -8182,6 +8182,8 @@ function refillSess(sx){ // 전체 범위 세션은 날이 바뀌면 스스로 �
    ⚠ **저장 큐는 그대로 둔다** — 지우면 되돌리기가 카드를 되살릴 자리를 잃는다. 세는 것만 바꾼다.
    ⚠ 그래서 되돌리기로 되살아날 카드는 이 숫자에 안 잡힌다. 「지금 풀 것」을 세는 값이므로 그게 맞다. */
 function sessRemain(sx){
+  const deck=sx?.sienDeckId&&DECKS.find(d=>d.id===sx.sienDeckId);
+  if(deck)return deckDailyPlan(deck).cards.length;
   return (curSess&&curSess.id===sx.id)
     ? newCap(sx, queue.slice(qPos).filter(c=>!settledToday(c)&&!buried(c)&&!retired(c)&&!offed(c))).length   // 끈 카드 제외(F3-8)
     : newCap(sx, gateIn(sessCards(sx), null)).length; }   // 신규 하루 최대(10-03)도 같은 문   // 🔴 격리분(사슬·짝 키·방향) 전부 빼고 센다 — 숫자와 실제가 어긋나면 안 된다(F3-3: 사슬만 세던 것)
@@ -8905,6 +8907,7 @@ function unleak(list, spread){
 }
 function playSess(sx){          // 세션 화면의 [이어가기] — 남은 큐를 그대로 이어 푼다
   creditDone();                 // 🔴 옮기기 전에 **떠나는 세션**의 누적을 맞춘다 (F4-6 ②)
+  refreshDeckResume(sx);
   curSess=sx; viewSess=sx; curPreset=asPreset(sx);
   lastPlaySid=sx.id; rqRun=sx.id;   // curSess가 끊겨도 이 id로 큐의 주인을 되찾는다 (syncSessQueue 참고) · rqRun = 이 런이 이 세션의 재출 대기분을 떠맡는다(09-22)
   refillSess(sx);
@@ -9100,7 +9103,7 @@ function cur(){ return queue[qPos]||null; }
 function tomorrowCount(sc){
   const tk=tomorrowKey(); let n=0;
   for(const c of DATA){ const s=state.cards[c.id];
-    if(s&&s.fsrs&&!s.retired&&effDueKey(dayKey(new Date(s.fsrs.due)), c.id)===tk&&(!sc||inScope(c,sc))) n++; }
+    if(s&&s.fsrs&&!retired(c)&&!offed(c)&&dayKey(new Date(s.fsrs.due))===tk&&(!sc||inScope(c,sc))) n++; }
   return n;
 }
 function tomorrowCardsForSess(sx){
@@ -11271,7 +11274,7 @@ function scRenderDock(){ const box=$('railSc'); if(!box) return; const has=!!SC.
     const v=(val,lab,dim)=>`<div class="rs-v${dim?' dim':''}"><b>${val}</b><span>${lab}</span></div>`;
     const L=[];
     L.push(`<div class="rs-top"><span class="rs-dot" style="background:${live?'var(--c-green)':st==='offline'?'var(--c-sep)':'var(--c-acc)'}"></span><span class="rs-nm">${m.mine?`${esc(SC.nick||'나')}<small>나</small>`:esc(m.display_name||'친구')}</span><span class="rs-st${live?' live':''}">${SC_ST[st]}${isFinite(last)?` · ${scAgo(last)}`:''}</span></div>`);
-    L.push(`<div class="rs-g">${v(n==null?'—':`${n.toLocaleString()}<small>장</small>`,'오늘',!n)}${v(n==null?'—':`${hr.toLocaleString()}<small>장</small>`,'최근 1시간',!hr)}${v(sec==null?'—':scClock(sec),'공부 시간',!sec)}${v(rate,'분당 장수',rate==='—')}</div>`);
+    L.push(`<div class="rs-g">${v(n==null?'—':`${n.toLocaleString()}<small>회</small>`,'오늘 채점',!n)}${v(n==null?'—':`${hr.toLocaleString()}<small>회</small>`,'최근 1시간',!hr)}${v(sec==null?'—':scClock(sec),'공부 시간',!sec)}${v(rate,'분당 채점',rate==='—')}</div>`);
     const pc=scColor(m.user_id);   // 목표 막대·띠 = 그 사람 색
     if(cg&&n!=null) L.push(`<div class="rs-gl"><div class="rs-bar"><i style="width:${Math.min(100,n/cg*100).toFixed(1)}%;background:${pc}"></i></div><em>${n.toLocaleString()} / ${cg.toLocaleString()}장</em></div>`);
     if(tg&&sec!=null) L.push(`<div class="rs-gl"><div class="rs-bar"><i style="width:${Math.min(100,sec/(tg*60)*100).toFixed(1)}%;background:${pc}"></i></div><em>${scClock(sec)} / ${scClock(tg*60)}</em></div>`);
@@ -11559,7 +11562,7 @@ function scPeople(where){
     const open=where==='study' && scOpen===m.user_id, tap=true;   // 내 줄도 누른다 — 목표를 그 자리에서(애드온 10-04 「내 시간·답변 수치를 눌러 목표」)
     return `<${tap?'button':'div'} class="sess2 sc-row${open?' open':''}" data-uid="${esc(m.user_id||'')}"${where==='study'?` aria-expanded="${open}"`:''}><span class="s2-dot" style="background:${st==='studying'?'var(--c-green)':st==='offline'?'transparent':'var(--c-acc)'}"></span>
       <span class="s2-b"><span class="s2-n">${m.mine?`${esc(SC.nick||'나')}<small class="sc-me">나</small>`:esc(m.display_name||'친구')}</span><span class="s2-s">${stTxt} · ${sec==null?'—':scFmt(sec)}${tg?` / ${tg}분`:''}${deckTxt}</span></span>
-      <span class="s2-r"><span class="s2-cnt"><b>${n==null?'—':n.toLocaleString()}</b><small>${cg?` / ${cg.toLocaleString()}`:''}장</small></span>${where==='home'?SC_RCHEV:SC_CHEV}</span></${tap?'button':'div'}>`
+      <span class="s2-r"><span class="s2-cnt" title="반복 학습을 포함한 오늘 채점 횟수"><b>${n==null?'—':n.toLocaleString()}</b><small>${cg?` / ${cg.toLocaleString()}`:''}회</small></span>${where==='home'?SC_RCHEV:SC_CHEV}</span></${tap?'button':'div'}>`
       + (open ? `<div class="sc-det">${m.mine?scGoalEd():scDetFriend(m)}</div>` : ''); }).join('');
   return {html, nStudy}; }
 function scRenderHome(){ const box=$('studyBox'); if(!box) return;
@@ -13467,7 +13470,7 @@ function startAdHoc(cards, label, note, pick, asRe, deckId){ // 목록·상세�
      전 카드를 채워 버린다 (감사 U1 — 재현 확정). */
   const sx=newSessObj(label||'임시 세션',
     {status:'all', order:'shuffle', weights:{}, limit:null, bury:false, newAfter:false}, {}, 'manual');
-  sx.q=cards.map(c=>c.id); sx.day=todayKey(); sx.temp=true; if(deckId)sx.sienDeckId=deckId;
+  sx.q=cards.map(c=>c.id); sx.day=todayKey(); sx.temp=true; if(deckId){sx.sienDeckId=deckId;sx.id='sien-deck-'+encodeURIComponent(deckId)+'-'+todayKey();}
   sessions.unshift(sx); saveSessionsFlush();
   playSess(sx);
   toast(note||`${cards.length}장 세션 — 채점은 정규로 반영돼요`);
@@ -13827,21 +13830,7 @@ $('btnSolveList').onclick=()=>{
    오늘 로그가 0줄인 아침에만 그 자리가 undefined로 새어 나왔다(NaN은 undefined-0). 새 필드를 더하면 여기도 더해라. */
 function emptyDay(){ return {n:0, nw:0, cards:0, ms:0, msN:0, re:0, r:[0,0,0,0,0]}; }
 function dailyStats(cardSet){
-  const by={}, firstSeen=new Set(), seenDay={};
-  for(const e of state.log){
-    if(cardSet && !cardSet.has(e[0])) continue;
-    const k=dayKey(logDate(e));
-    const d=by[k]||(by[k]=emptyDay());
-    d.n++;                                   // 회 = 재출 포함
-    if(e[3] && e[3].re){ d.re++; continue; } // 아래(장·등급·시간)는 첫 채점만
-    const sd=seenDay[k]||(seenDay[k]=new Set());
-    if(!sd.has(e[0])){ sd.add(e[0]); d.cards++; }
-    d.r[e[2]]=(d.r[e[2]]||0)+1;
-    if(!firstSeen.has(e[0])){ firstSeen.add(e[0]); d.nw++; }
-    const ex=e[3];
-    if(ex&&typeof ex.ms==='number'){ d.ms+=ex.ms; d.msN++; }
-  }
-  return by;
+  return SienDay.stats(state.log,cardSet);
 }
 function dayKeyOffset(n){ return dayKey(new Date(Date.now()+n*86400000)); }
 function fmtMin(ms){ if(!ms)return '0분'; const m=ms/60000;
@@ -16446,17 +16435,13 @@ function getDeckOptions(deck){
   return { ...DEFAULT_DECK_OPTS, isDefault: true };
 }
 
-function getTodayStudiedCounts(deck){
- const ids=new Set(getDeckCards(deck,true).map(c=>c.id)),seen=new Set();let studiedNew=0,studiedReview=0;
- for(const e of state.log){if(!ids.has(e[0])||seen.has(e[0])||dayKey(new Date(logTs(e)))!==todayKey())continue;
-   seen.add(e[0]);const x=e[3]||{};
-   if(x.previousPhase===0||x.ankiType===0)studiedNew++;else studiedReview++;
- }return {studiedNew,studiedReview};
+function getTodayStudiedCounts(deck,includeChildren=true){
+ return SienDay.counts(state.log,new Set(getDeckCards(deck,includeChildren).map(c=>c.id)),todayKey());
 }
 
 function deckDailyPlan(deck, includeChildren=true){
   const cards=getDeckCards(deck,includeChildren),opts=getDeckOptions(deck);
-  const {studiedNew,studiedReview}=getTodayStudiedCounts(deck),trM=todayRatings();
+  const {studiedNew,studiedReview}=getTodayStudiedCounts(deck,includeChildren),trM=todayRatings();
   const fresh=[],review=[],learning=[];let again=0;
   for(const c of cards){
     if(retired(c)||offed(c)||buried(c))continue;
@@ -16482,27 +16467,41 @@ function getDeckStats(deck,includeChildren=true){return deckDailyPlan(deck,inclu
 // Reuse tagged deck sessions. For legacy lists, only exact same-day card sets
 // with the deck's name are merged; custom subsets and other study modes remain separate.
 function coalesceDeckSessions(){
-  const groups=new Map(),removed=new Map();
+  const groups=new Map(),removed=new Map(),signatures=new Map();
   for(const sx of sessions){
-    if(!sx?.temp||!isFixed(sx)||sx.day!==todayKey()||sx.how?.status!=='all'||sx.how.order!=='shuffle')continue;
+    if(!sx?.temp||!isFixed(sx)||sx.day!==todayKey()||!deckSessionStatus(sx))continue;
     const deck=DECKS.find(d=>sx.sienDeckId?d.id===sx.sienDeckId:d.name===sx.name);
     if(!deck||!sx.q?.length||sx.q.some(id=>!BYID[id]))continue;
     const member=new Set(getDeckCards(deck).map(c=>c.id));if(sx.q.some(id=>!member.has(id)))continue;
     const ids=[...new Set(sessCards(sx).filter(c=>!settledToday(c)&&!buried(c)&&!retired(c)&&!offed(c)).map(c=>c.id))].sort();
     if(!ids.length)continue;
-    const key=deck.id+'|'+JSON.stringify(ids),other=groups.get(key);
-    if(!other){groups.set(key,sx);continue;}
-    const keep=curSess?.id===sx.id?sx:curSess?.id===other.id?other:(Number(sx.lastAt)||0)>(Number(other.lastAt)||0)?sx:other;
-    const drop=keep===sx?other:sx;groups.set(key,keep);removed.set(drop.id,keep);
+    const signature=JSON.stringify(ids),candidates=groups.get(deck.id)||[];
+    signatures.set(sx.id,signature);
+    const other=candidates.find(x=>(sx.sienDeckId&&x.sienDeckId)||signatures.get(x.id)===signature);
+    if(!other){candidates.push(sx);groups.set(deck.id,candidates);continue;}
+    const keep=curSess===sx?sx:curSess===other?other:curSess?.id===sx.id?sx:curSess?.id===other.id?other:(Number(sx.lastAt)||0)>(Number(other.lastAt)||0)?sx:other;
+    const drop=keep===sx?other:sx;keep.sienDeckId=deck.id;
+    groups.set(deck.id,[...candidates.filter(x=>x!==other),keep]);removed.set(drop,keep);
   }
   if(!removed.size)return;
   // Keep a local, recoverable copy of the duplicate resume metadata before cleanup.
-  if(!lsSet('sien-session-dedup-backup-v1',JSON.stringify({at:Date.now(),sessions:sessions.filter(x=>removed.has(x.id))})))return;
-  const kept=x=>{while(x&&removed.has(x.id))x=removed.get(x.id);return x;};
-  viewSess=kept(viewSess);if(removed.has(lastPlaySid))lastPlaySid=kept(removed.get(lastPlaySid)).id;
-  sessions=sessions.filter(x=>!removed.has(x.id));
-  for(const id of removed.keys())sessTomb.push({id,del:Date.now()});
+  if(!lsSet('sien-session-dedup-backup-v1',JSON.stringify({at:Date.now(),sessions:sessions.filter(x=>removed.has(x))})))return;
+  const kept=x=>{while(x&&removed.has(x))x=removed.get(x);return x;};
+  viewSess=kept(viewSess);curSess=kept(curSess);
+  const last=[...removed.keys()].find(x=>x.id===lastPlaySid);if(last)lastPlaySid=kept(last).id;
+  sessions=sessions.filter(x=>!removed.has(x));
+  const liveIds=new Set(sessions.map(x=>x.id));
+  for(const sx of removed.keys())if(!liveIds.has(sx.id))sessTomb.push({id:sx.id,del:Date.now()});
   saveSessionsSoon();
+}
+function deckSessionStatus(sx){const status=stArr(sx?.how?.status);return status.length===1&&status[0]==='all'&&sx.how?.order==='shuffle';}
+function refreshDeckResume(sx){
+  const deck=sx?.sienDeckId&&DECKS.find(d=>d.id===sx.sienDeckId);if(!deck)return;
+  const planned=deckDailyPlan(deck).cards,ids=new Set(planned.map(c=>c.id));
+  const previous=(sx.q||[]).filter(id=>ids.has(id)),seen=new Set(previous);
+  sx.q=[...previous,...planned.filter(c=>!seen.has(c.id)).map(c=>c.id)];
+  if(sx.q.length!==previous.length)delete sx.sienMixDay;
+  sx.day=todayKey();sx.name=deck.name;
 }
 
 // 덱 허브 렌더링 (Anki 계층형 하위 덱 및 트리 뷰 지원)
@@ -17032,13 +17031,11 @@ function playDeck(deck){
   coalesceDeckSessions();
   const ids=new Set(pending.map(c=>c.id));
   const existing=sessions.find(sx=>sx.temp&&sx.day===todayKey()&&
-    (sx.sienDeckId===deck.id||(!sx.sienDeckId&&sx.name===deck.name&&isFixed(sx)&&sx.how?.status==='all'&&sx.how.order==='shuffle'&&
+    (sx.sienDeckId===deck.id||(!sx.sienDeckId&&sx.name===deck.name&&isFixed(sx)&&deckSessionStatus(sx)&&
       sx.q?.length&&sx.q.every(id=>!!BYID[id])&&
       (()=>{const rest=sessCards(sx).filter(c=>!settledToday(c)&&!buried(c)&&!retired(c)&&!offed(c));return rest.length===ids.size&&rest.every(c=>ids.has(c.id));})())));
   if(existing){
-    const remaining=(existing.q||[]).filter(id=>ids.has(id)),seen=new Set(remaining);
-    existing.q=[...remaining,...pending.filter(c=>!seen.has(c.id)).map(c=>c.id)];existing.sienDeckId=deck.id;
-    if(existing.q.length!==remaining.length)delete existing.sienMixDay;
+    existing.sienDeckId=deck.id;refreshDeckResume(existing);
     saveSessionsFlush();playSess(existing);return;
   }
   startAdHoc(pending,deck.name,`'${deck.name}' 덱 학습 시작 (복습 ${plan.dueCards.length}장 + 신규 ${plan.newCards.length}장)`,false,false,deck.id);
@@ -18743,13 +18740,13 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261017-19"></script>
-<script src="sien-queue.js?v=20261017-19"></script>
-<script src="sien-learning.js?v=20261017-19"></script>
-<script src="sien-keys.js?v=20261017-19"></script>
-<script src="sien-pokes.js?v=20261017-19"></script>
-<script src="sien-network.js?v=20261017-19"></script>
-<script src="sien-app.js?v=20261017-19"></script>
-<script src="sien-embed.js?v=20261017-19"></script>
+<script src="sien-sm2.js?v=20261018-20"></script>
+<script src="sien-queue.js?v=20261018-20"></script>
+<script src="sien-learning.js?v=20261018-20"></script>
+<script src="sien-keys.js?v=20261018-20"></script>
+<script src="sien-pokes.js?v=20261018-20"></script>
+<script src="sien-network.js?v=20261018-20"></script>
+<script src="sien-app.js?v=20261018-20"></script>
+<script src="sien-embed.js?v=20261018-20"></script>
 </body>
 </html>

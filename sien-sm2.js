@@ -2,8 +2,9 @@
   'use strict';
   // Anki-style SM-2. The fsrs field is retained only as the existing sync wire format.
   const DAY=86400000,MAX=36500,copy=x=>JSON.parse(JSON.stringify(x));
-  function dayNumber(value){const d=new Date(value);d.setHours(d.getHours()-4);return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY);}
-  function dayDue(now,days){const d=new Date(now);d.setHours(d.getHours()-4);d.setDate(d.getDate()+days);d.setHours(4,0,0,0);return d.toISOString();}
+  const StudyDay=typeof module==='object'&&module.exports?require('./sien-day'):globalThis.SienDay;
+  function dayNumber(value){return StudyDay.number(value);}
+  function dayDue(now,days){return StudyDay.due(now,days);}
   function jitter(key){let h=2166136261;for(const c of key){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return(h>>>0)/4294967296;}
   function interval(value,min=1,factor=null){
     min=Math.min(MAX,Math.max(1,min));value=Math.max(min,Math.min(MAX,value));
