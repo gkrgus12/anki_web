@@ -102,3 +102,5 @@ body:has(#scrSolve.on){--insp-w:340px}
 @media(max-width:360px){#railSc .rs-p{padding-left:6px;padding-right:6px}#railSc .rs-top{gap:6px}#railSc .rs-nm{font-size:15px}#railSc .rs-st{font-size:11px}#railSc .rs-v b{font-size:16px}}
 
 .sien-embedded #btnGptFront,.sien-embedded #btnGptBack{display:none!important}
+
+#cFront .sien-source-word{display:inline-flex;align-items:baseline;gap:10px;max-width:100%;min-height:44px;padding:0;border:0;border-radius:4px;box-shadow:none;background:transparent;color:inherit;font:inherit;line-height:inherit;text-align:left;white-space:pre-wrap;cursor:pointer}#cFront .sien-source-title{text-decoration:underline;text-decoration-color:var(--c-sep);text-underline-offset:6px;text-decoration-thickness:1px}#cFront .sien-source-hint{font-size:11px;font-weight:500;white-space:nowrap;color:var(--c-sec)}#cFront .sien-source-word:hover .sien-source-title{color:var(--c-acc)}#cFront .sien-source-word:focus-visible{outline:2px solid var(--c-acc);outline-offset:4px}

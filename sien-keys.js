@@ -34,7 +34,7 @@
     }
     if(typing||!kbdOn)return;
     if(target?.closest?.('#rail')&&['Space','Enter','ArrowLeft','ArrowRight','Home','End'].includes(e.code))return;
-    if(target?.closest?.('summary')&&['Space','Enter'].includes(e.code))return;
+    if(target?.closest?.('summary,.sien-source-word')&&['Space','Enter'].includes(e.code))return;
     const action=actions.find(([id])=>bindings[id].includes(key))?.[0];if(!action)return;
     const overlay=document.querySelector('.ovl.show, #ovlHd.show, #ovlImg.show');
     if(overlay&&action!=='close')return;
