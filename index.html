@@ -53,9 +53,9 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261017-16">
-<script src="sien-study.js?v=20261017-16"></script>
-<script src="sien-render.js?v=20261017-16"></script>
+<link rel="stylesheet" href="sien.css?v=20261017-17">
+<script src="sien-study.js?v=20261017-17"></script>
+<script src="sien-render.js?v=20261017-17"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -8921,6 +8921,7 @@ function playSess(sx){          // 세션 화면의 [이어가기] — 남은 �
   phase = stOnly(sx.how.status,'new') ? 'new' : 'review';
   sessionDone=0; doneCredited=0; newServed=0; undoSnap=null; undoRun++; updateUndo(); sessReset();
   lastAction = null;
+  SienLearning.start(sx);
   go('scrSolve');
   /* 🔴 큐가 비었는데 세션에 카드는 있었다 = 전부 오늘 이미 푼 것이다. 말없이 돌려보내면
      「눌렀는데 아무 일도 안 일어난다」가 된다(동하 2026-08-30). 이유를 말한다. */
@@ -9756,6 +9757,7 @@ function whyNow(c){
   if(reN) return reN>=2 ? '재출 — 아까 다시 한 카드 · 세션 끝 한 번 더' : '재출 — 아까 「다시」 한 카드';
   if(isNew(c)) return curTopic&&tagKey(c)===curTopic ? `다음 진도 — ${rowLabel(curTopic)}` : '처음 보는 카드';
   const st2=state.cards[c.id]; if(!st2||!st2.fsrs) return '';
+  if(SienSM2.learning(st2)){const minutes=Math.max(1,Math.ceil((Date.parse(st2.fsrs.due)-Date.now())/60000));return SienLearning.ahead(c)?'학습 미리 보기 · 원래 '+minutes+'분 뒤 예정':'학습 단계 · 복습할 시간';}
   const due=dayKey(new Date(st2.fsrs.due)), tk=todayKey();
   const lr=lastRevMap()[c.id];
   const head = lr ? `${mdY(lr[0])} 채점 · ` : '';
@@ -17075,7 +17077,7 @@ function playDeck(deck){
   // 2. 신규 카드 선발 (오늘 남은 신규 한도 stats.new 만큼)
   const newCards = aliveCards.filter(c => isNew(c)).slice(0, stats.new);
 
-  // 대기 큐 구성 (복습 먼저, 그 다음 신규 카드)
+  // 선발한 하루 분량은 playSess에서 복습과 신규를 비례하여 섞는다.
   const pending = [...learningCards,...dueCards,...newCards];
   const toStudy = pending;
 
@@ -18787,12 +18789,13 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261017-16"></script>
-<script src="sien-learning.js?v=20261017-16"></script>
-<script src="sien-keys.js?v=20261017-16"></script>
-<script src="sien-pokes.js?v=20261017-16"></script>
-<script src="sien-network.js?v=20261017-16"></script>
-<script src="sien-app.js?v=20261017-16"></script>
-<script src="sien-embed.js?v=20261017-16"></script>
+<script src="sien-sm2.js?v=20261017-17"></script>
+<script src="sien-queue.js?v=20261017-17"></script>
+<script src="sien-learning.js?v=20261017-17"></script>
+<script src="sien-keys.js?v=20261017-17"></script>
+<script src="sien-pokes.js?v=20261017-17"></script>
+<script src="sien-network.js?v=20261017-17"></script>
+<script src="sien-app.js?v=20261017-17"></script>
+<script src="sien-embed.js?v=20261017-17"></script>
 </body>
 </html>
