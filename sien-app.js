@@ -8,13 +8,15 @@
   const copy=x=>JSON.parse(JSON.stringify(x));
   const empty=()=>({version:1,cards:[],decks:[],state:{cards:{},log:[]}});
   const N=SienNetwork,diagnostics=N.diagnostics(localStorage);
-  let failures=0,nextRetryAt=0,rateUntil=0,autoBlocked=false,lastExitPayload='',lastConfig=null,exitSync=null;
+  let failures=0,nextRetryAt=0,rateUntil=0,autoBlocked=false,lastExitPayload='',lastConfig=null,exitSync=null,metadataCache=null,remoteWriteUntil=0;
   const htmlText=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function pendingCount(){try{return pending().length;}catch{return 0;}}
   function logFailure(e){diagnostics.add({outcome:'failure',code:e.code,stage:e.stage,status:e.status,durationMs:e.durationMs,rate:e.rate,pending:pendingCount(),hidden:document.visibilityState==='hidden'});}
   function error(e){logFailure(e);setSyncStatusUI('error',e.message);showBanner(htmlText(e.message||'학습 기록을 저장하지 못했습니다. 이 창을 닫지 말고 다시 동기화해 주세요.'),false,'gist');}
   function failed(e,manual){
-    logFailure(e);failures++;
+    failures++;
+    if(e.code==='RATE_LIMIT')e.retryAt=Math.max(e.retryAt||0,Date.now()+N.delay(e,failures));
+    logFailure(e);
     const cfg=getGistConfig();if(cfg?.gistId)N.cooldown(localStorage,cfg.gistId).save(e);
     if(e.retryable){
       rateUntil=Math.max(rateUntil,e.retryAt||0);nextRetryAt=Date.now()+N.delay(e,failures)+Math.floor(Math.random()*1000);
@@ -68,10 +70,31 @@
       else if(revealed)intervalsPreview(cur());
     }
   }
+  function waitForRequest(cfg,includeWrite=false){
+    rateUntil=Math.max(rateUntil,N.cooldown(localStorage,cfg.gistId).read()?.until||0);
+    const pace=N.pacing(localStorage,cfg.gistId).read();
+    return Math.max(rateUntil,nextRetryAt,pace.readUntil,includeWrite?pace.writeUntil:0);
+  }
+  function defer(until,manual=false){
+    setSyncStatusUI('pending');scheduleGistAutoSync(Math.max(0,until-Date.now()));
+    if(Date.now()<rateUntil){const message=N.waitMessage(rateUntil,pendingCount());showBanner(htmlText(message),false,'gist');if(manual)toast(message);}
+    else if(manual)toast('변경 기록을 보관했습니다. 잠시 후 자동으로 동기화합니다.');
+    return false;
+  }
   async function api(cfg,method='GET',files){
-    const opts={method,headers:gistHeaders(cfg.token),cache:'no-store'};
+    const opts={method,headers:gistHeaders(cfg.token),cache:'no-store'},pace=N.pacing(localStorage,cfg.gistId);
+    if(method==='GET'&&metadataCache?.etag)opts.headers['If-None-Match']=metadataCache.etag;
     if(files){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify({files:Object.fromEntries(Object.entries(files).map(([k,v])=>[k,{content:JSON.stringify(v)}]))});}
-    const g=await N.request('https://api.github.com/gists/'+cfg.gistId,opts,method==='PATCH'?'write':'metadata');if(g.public||g.truncated||g.owner?.login?.toLowerCase()!==cfg.username?.toLowerCase())throw new Error('Gist 소유자 또는 전체 파일 목록을 확인할 수 없습니다.');return g;
+    let etag='',serverNow=Date.now(),notModified=false;
+    if(method==='GET')pace.markRead();else {pace.markWrite();metadataCache=null;}
+    const g=await N.request('https://api.github.com/gists/'+cfg.gistId,opts,method==='PATCH'?'write':'metadata',{
+      cached:method==='GET'?metadataCache?.value:undefined,
+      onResponse:r=>{notModified=r.status===304;etag=r.headers.get('etag')||'';serverNow=Date.parse(r.headers.get('date'))||Date.now();}
+    });
+    if(g.public||g.truncated||g.owner?.login?.toLowerCase()!==cfg.username?.toLowerCase())throw new Error('Gist 소유자 또는 전체 파일 목록을 확인할 수 없습니다.');
+    if(method==='GET')metadataCache={value:g,etag:etag||(notModified?metadataCache?.etag:'')};
+    remoteWriteUntil=Date.now()+Math.max(0,Math.min(10000,(Date.parse(g.updated_at)||0)+10000-serverNow));
+    return g;
   }
   async function readFile(f,name){
     const cached=fileCache.get(name);if(f.raw_url&&cached?.url===f.raw_url)return cached.value;
@@ -94,23 +117,28 @@
   let activeSync=null;
   function sync(manual=false){
     if(exitSync)return exitSync.then(()=>sync(manual));
-    if(activeSync)return activeSync.then(ok=>ok&&(manual||pending().length)?sync(manual):ok);
-    activeSync=runSync(manual).finally(()=>{activeSync=null;});return activeSync;
+    if(activeSync)return activeSync;
+    activeSync=runSync(manual).finally(()=>{activeSync=null;if(pendingCount()&&!autoBlocked)scheduleGistAutoSync();});return activeSync;
   }
   async function runSync(manual=false){
     const cfg=getGistConfig();if(!cfg?.token||!cfg.gistId)return false;
-    if(lastConfig&&(lastConfig.token!==cfg.token||lastConfig.gistId!==cfg.gistId)){autoBlocked=false;nextRetryAt=0;rateUntil=0;failures=0;fileCache.clear();}
+    if(lastConfig&&(lastConfig.token!==cfg.token||lastConfig.gistId!==cfg.gistId)){autoBlocked=false;nextRetryAt=0;rateUntil=0;failures=0;fileCache.clear();metadataCache=null;remoteWriteUntil=0;}
     lastConfig={token:cfg.token,gistId:cfg.gistId};
-    rateUntil=Math.max(rateUntil,N.cooldown(localStorage,cfg.gistId).read()?.until||0);
-    const wait=Math.max(rateUntil,manual?0:nextRetryAt)-Date.now();
-    if(wait>0){scheduleGistAutoSync();if(Date.now()<rateUntil){const message=N.waitMessage(rateUntil,pendingCount());setSyncStatusUI('pending');showBanner(htmlText(message),false,'gist');if(manual)toast(message);}else if(manual)toast('잠시 후 자동으로 다시 확인합니다.');return false;}
+    clearTimeout(timer);timer=null;capture();
+    const until=waitForRequest(cfg,pendingCount()>0);
+    if(until>Date.now())return defer(until,manual);
     if(autoBlocked&&!manual)return false;
     if(document.visibilityState==='hidden'&&!manual)return false;
-    if(manual){autoBlocked=false;nextRetryAt=0;}
+    if(navigator.onLine===false){nextRetryAt=Date.now()+30000;return defer(nextRetryAt,manual);}
+    if(manual)autoBlocked=false;
     if(isGistSyncing)return false;isGistSyncing=true;setSyncStatusUI('syncing');
     try{
       if(!navigator.locks)throw new Error('이 브라우저는 안전한 다중 탭 저장을 지원하지 않습니다. 최신 Chrome 또는 Edge로 열어 주세요.');
       return await navigator.locks.request('sien-gist-'+cfg.gistId,async()=>{
+        if(getGistConfig()?.gistId!==cfg.gistId||getGistConfig()?.token!==cfg.token)return false;
+        const until=waitForRequest(cfg,pendingCount()>0);
+        if(until>Date.now())return defer(until,manual);
+        if(document.visibilityState==='hidden'&&!manual)return false;
         capture();await chain;
         const ownId=await idbGet('sien-device-v1');deviceId=ownId||crypto.randomUUID();if(!ownId)await put('sien-device-v1',deviceId);
         let remote=await read(await api(cfg)),outbox=pending();
@@ -122,7 +150,10 @@
           const name='sien-obsidian-lifecycle-web-'+deviceId+'.json';
           files[name]={schema:1,vaultId:remote.vaultId,deviceId:'web-'+deviceId,published:[],blocked:[...new Set([...remote.blocked,...allDeleted])]};
         }
-        if(Object.keys(files).length){await api(cfg,'PATCH',files);remote=await read(await api(cfg));
+        if(Object.keys(files).length){
+          const until=Math.max(N.pacing(localStorage,cfg.gistId).read().writeUntil,remoteWriteUntil);
+          if(until>Date.now()){N.pacing(localStorage,cfg.gistId).deferWrite(until);return defer(until,manual);}
+          remote=await read(await api(cfg,'PATCH',files));
           const stored=new Set(remote.docs.filter(d=>d.kind==='journal').flatMap(d=>d.events.map(e=>e.id)));
           if(outbox.some(e=>!stored.has(e.id)))throw new N.Failure('UNCONFIRMED','verify',{retryable:true});
         }
@@ -150,7 +181,9 @@
   scheduleGistAutoSync=function(delay=0){
     if(timer)clearTimeout(timer);timer=null;
     if(autoBlocked||document.visibilityState==='hidden')return;
-    const wait=Math.max(delay,nextRetryAt-Date.now(),rateUntil-Date.now(),0);
+    const cfg=getGistConfig();
+    const until=cfg?.gistId?waitForRequest(cfg,pendingCount()>0):Math.max(nextRetryAt,rateUntil);
+    const wait=Math.max(delay,until-Date.now(),0);
     timer=setTimeout(()=>{timer=null;if(document.visibilityState!=='hidden')sync(false);},wait);
   };
   // All legacy collection/repository writers are routed through the one journal transport.
@@ -180,7 +213,7 @@
       rateUntil=Math.max(rateUntil,N.cooldown(localStorage,cfg.gistId).read()?.until||0);
       // An in-flight normal save already owns this outbox. A second exit PATCH
       // caused 409s and consumed write quota. Keep the durable outbox on abort.
-      if(activeSync||isGistSyncing||exitSync||Date.now()<rateUntil||!navigator.locks)return;
+      if(activeSync||isGistSyncing||exitSync||Date.now()<Math.max(rateUntil,nextRetryAt,N.pacing(localStorage,cfg.gistId).read().writeUntil)||!navigator.locks||navigator.onLine===false)return;
       const files={};
       for(const event of pending()){
         const name=S.PREFIX+deviceId+'-exit-'+event.id+'.json';
@@ -192,8 +225,8 @@
       // The same Web Lock also protects other tabs. Do not queue an exit write
       // behind a busy tab: next entry reconciles event IDs from the local outbox.
       exitSync=navigator.locks.request('sien-gist-'+cfg.gistId,{ifAvailable:true},async lock=>{
-        if(!lock||activeSync||isGistSyncing||Date.now()<Math.max(rateUntil,N.cooldown(localStorage,cfg.gistId).read()?.until||0))return;
-        lastExitPayload=body;
+        if(!lock||activeSync||isGistSyncing||Date.now()<Math.max(rateUntil,nextRetryAt,N.cooldown(localStorage,cfg.gistId).read()?.until||0,N.pacing(localStorage,cfg.gistId).read().writeUntil))return;
+        lastExitPayload=body;N.pacing(localStorage,cfg.gistId).markWrite();metadataCache=null;
         try{await N.request('https://api.github.com/gists/'+cfg.gistId,{method:'PATCH',headers:{...gistHeaders(cfg.token),'Content-Type':'application/json'},body,keepalive:true},'write',{discardResponse:true});}
         catch(e){lastExitPayload='';failed(e,false);}
       }).catch(()=>{lastExitPayload='';}).finally(()=>{exitSync=null;});

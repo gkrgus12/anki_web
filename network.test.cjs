@@ -33,3 +33,15 @@ test('Rate diagnostics whitelist data without raw messages, URLs, or credentials
  d.add({code:'RATE_LIMIT',stage:'write',rate:{limit:5000,remaining:0,resource:'core',kind:'primary',retryAfterSeconds:2450,retryAt:now+2450000,token:'secret',message:'secret',url:'secret'}});
  assert.equal(d.read()[0].rate.retryAfterSeconds,2450);assert.equal(d.text().includes('secret'),false);
 });
+
+test('conditional 304 reuses a previously validated document without parsing an empty body',async()=>{
+ const cached={files:{fixture:{}}};const value=await N.request('https://example.invalid',{},'metadata',{cached,fetcher:async()=>new Response(null,{status:304})});
+ assert.equal(value,cached);
+ await assert.rejects(N.request('https://example.invalid',{},'metadata',{fetcher:async()=>new Response(null,{status:304})}),e=>e.code==='HTTP');
+});
+test('pacing survives a new instance and repeated limits back off progressively',()=>{
+ const map=new Map(),storage={getItem:k=>map.get(k),setItem:(k,v)=>map.set(k,v)},p=N.pacing(storage,'fixture');
+ const at=Date.now();p.markWrite();assert.ok(N.pacing(storage,'fixture').read().writeUntil>=at+10000);
+ assert.equal(N.pacing(storage,'other').read().writeUntil,0);
+ assert.deepEqual([1,2,3,4,5,6].map(n=>N.delay({code:'RATE_LIMIT'},n,0)),[60000,120000,240000,480000,900000,900000]);
+});

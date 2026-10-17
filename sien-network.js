@@ -1,7 +1,7 @@
 /* Transport errors and local, redacted diagnostics shared by the Gist UI. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SienNetwork=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const VERSION='20261017-14',KEY='sien-sync-errors-v1';
+  const VERSION='20261017-15',KEY='sien-sync-errors-v1';
   const LABELS={metadata:'변경 목록 수신',file:'학습 파일 수신',write:'학습 기록 전송',verify:'전송 확인',local:'기기 저장'};
   class Failure extends Error{
     constructor(code,stage,options={}){super(options.message||message(code,stage,options.status));this.name='SyncFailure';this.code=code;this.stage=stage;this.status=options.status||0;this.retryable=!!options.retryable;this.retryAt=options.retryAt||0;this.durationMs=options.durationMs||0;this.rate=cleanRate(options.rate);}
@@ -56,12 +56,14 @@
     const timer=setTimeout(()=>{timedOut=true;controller.abort();},config.timeoutMs||45000);
     try{
       const r=await fetcher(url,{...options,signal:controller.signal}),text=await r.text();
+      if(r.status===304&&config.cached!==undefined){config.onResponse?.(r);return config.cached;}
       if(!r.ok){
         let body;try{body=JSON.parse(text);}catch{}
         const rate=r.status===429||(r.status===403&&(r.headers.get('x-ratelimit-remaining')==='0'||/rate limit|secondary|abuse/i.test(body?.message||'')));
         const code=rate?'RATE_LIMIT':r.status===401?'AUTH':'HTTP';
         throw new Failure(code,stage,{status:r.status,retryable:rate||[408,409,425].includes(r.status)||r.status>=500||(stage==='file'&&r.status===404),retryAt:rate?rateInfo(r.headers,now(),body).retryAt:0,rate:rate?rateInfo(r.headers,now(),body):undefined});
       }
+      config.onResponse?.(r);
       if(config.discardResponse)return null;
       try{return JSON.parse(text);}catch{throw new Failure('DATA',stage);}
     }catch(e){
@@ -71,7 +73,13 @@
   }
   function delay(error,attempt,now=Date.now()){
     const waits=[2000,5000,15000,60000,180000,300000];
-    return Math.max(error.retryAt?error.retryAt-now:0,waits[Math.min(Math.max(attempt-1,0),waits.length-1)]);
+    return Math.max(error.retryAt?error.retryAt-now:0,error.code==='RATE_LIMIT'?Math.min(900000,60000*2**Math.min(Math.max(attempt-1,0),4)):0,waits[Math.min(Math.max(attempt-1,0),waits.length-1)]);
+  }
+  function pacing(storage,id){
+    const key='sien-github-pacing-v1:'+id;
+    const read=()=>{try{const v=JSON.parse(storage.getItem(key)||'{}');return {readUntil:Number(v.readUntil)||0,writeUntil:Number(v.writeUntil)||0};}catch{return {readUntil:0,writeUntil:0};}};
+    const save=(name,until)=>{const v=read();v[name]=Math.max(v[name],until);storage.setItem(key,JSON.stringify(v));return v[name];};
+    return {read,markRead:()=>save('readUntil',Date.now()+1500),markWrite:()=>save('writeUntil',Date.now()+10000),deferWrite:until=>save('writeUntil',until)};
   }
   function clean(entry){
     return {at:typeof entry.at==='string'&&/^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(entry.at)?entry.at:new Date().toISOString(),
@@ -86,5 +94,5 @@
     const read=()=>{try{const list=JSON.parse(storage.getItem(KEY)||'[]');return Array.isArray(list)?list.slice(-30).map(clean):[];}catch{return[];}};
     return {read,add(entry){const list=[...read(),clean(entry)].slice(-30);try{storage.setItem(KEY,JSON.stringify(list));}catch{}return list;},text(){return JSON.stringify({version:VERSION,events:read()},null,2);}};
   }
-  return {VERSION,LABELS,Failure,request,delay,diagnostics,waitMessage,cooldown};
+  return {VERSION,LABELS,Failure,request,delay,diagnostics,waitMessage,cooldown,pacing};
 });
