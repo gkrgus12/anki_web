@@ -3,6 +3,7 @@
   'use strict';
   const S=SienStudy,WEB='anki_fsrs_sync_data.json',PENDING='sien-pending-v1:',CACHE='sien-view-v1';
   let baseline=null,clock=0,applying=false,ready=false,chain=Promise.resolve(),timer=null;
+  let sharedAppearance=S.appearance();
   let custom='[]',deleted=new Set(),fileCache=new Map(),deviceId='';
   let fileScope='',filesDirty=false;
   const explicitUndo=new Set();
@@ -39,7 +40,7 @@
   }
   async function put(key,value){const db=await idbOpen();try{await new Promise((resolve,reject)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('로컬 저장이 취소되었습니다.'));});}finally{db.close();}}
   function pending(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(PENDING)){const value=JSON.parse(localStorage.getItem(k));out.push(value);}}return out;}
-  function payload(){return {version:1,cards:DATA.map(S.cleanCard),decks:copy(DECKS),state:{cards:copy(state.cards),log:copy(state.log)}};}
+  function payload(){return {version:1,appearance:copy(sharedAppearance),cards:DATA.map(S.cleanCard),decks:copy(DECKS),state:{cards:copy(state.cards),log:copy(state.log)}};}
   function capture(){
     if(!ready||applying)return;
     const now=payload(),change=baseline&&S.delta(baseline,now);
@@ -65,6 +66,7 @@
       TREE=null;_prMemo=null;lastRevIdx=null;firstRevIdx=null;
       // Keep the current queue position; remove deleted entries without replaying answered cards.
       if(Array.isArray(queue)){const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)).map(c=>BYID[c.id]?{...BYID[c.id],...Object.fromEntries(Object.entries(c).filter(([k])=>k.startsWith('_')&&k!=='_i'))}:c);queue=[...before,...rest];qPos=before.length;}
+      sharedAppearance=S.appearance(p.appearance);receiveAppearance(sharedAppearance);_dueParts=null;
       baseline=payload();syncDeckDropdowns();renderDeckHub();renderHome();renderList();renderStats();
     }finally{applying=false;}
     if(displayed&&$('scrSolve').classList.contains('on')){
@@ -232,7 +234,11 @@
   const originalDelete=deleteCard;deleteCard=function(id){const r=originalDelete(id);try{capture();}catch(e){error(e);}return r;};
   const originalDecks=saveUserDecks;saveUserDecks=function(...args){const r=originalDecks(...args);queueMicrotask(()=>{try{capture();}catch(e){error(e);}});return r;};
   const originalSave=$('btnDoSaveCard')?.onclick;if(originalSave)$('btnDoSaveCard').onclick=function(...args){const r=originalSave.apply(this,args);try{capture();}catch(e){error(e);}return r;};
-  window.SienApp={capture,sync,diagnostics:()=>diagnostics.read(),async boot(){
+  window.SienApp={capture,sync,setAppearance(value){
+    if(!ready){toast('데이터를 불러온 뒤 테마를 바꿔 주세요.');return;}
+    const previous=sharedAppearance;sharedAppearance=S.appearance(value);
+    try{capture();receiveAppearance(sharedAppearance);renderHome();}catch(e){sharedAppearance=previous;error(e);}
+  },diagnostics:()=>diagnostics.read(),async boot(){
     installDiagnostics();
     try{
       buildEngine();

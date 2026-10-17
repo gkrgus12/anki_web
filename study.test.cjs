@@ -1,6 +1,25 @@
 const test=require('node:test'),assert=require('node:assert/strict'),S=require('./sien-study');
 const fixture=()=>({version:1,cards:[{id:'a',front:'old',updatedAt:1},{id:'b'}],decks:[{id:'d',name:'words'}],state:{cards:{a:{fsrs:{reps:9,lapses:2,last_review:'2026-10-01T00:00:00Z'}}},log:[['a',1,3]]}});
 const j=(id,events)=>({schema:1,kind:'journal',deviceId:id,sequence:0,events}),e=(id,at,change)=>({id,at,change});
+test('paper migration does not publish a per-device default or alter history',()=>{
+ const p=fixture(),after={...structuredClone(p),appearance:S.appearance()};
+ assert.equal(S.delta(p,after),null);assert.deepEqual(S.appearance(),{theme:'paper',light:'paper'});
+});
+test('explicit appearance choices merge across devices without erasing concurrent reviews',()=>{
+ const p=fixture(),after={...structuredClone(p),appearance:{theme:'dark',light:'paper'}};
+ assert.deepEqual(S.delta(p,after),{appearance:after.appearance});
+ const pc=j('pc',[e('theme-a',10,S.delta(p,after))]);
+ const phone=j('phone',[e('review',11,{logs:[['b',2,3,{sienId:'review'}]]}),e('theme-b',12,{appearance:{theme:'paper',light:'white'}})]);
+ const merged=S.merge(p,[pc,phone]);
+ assert.deepEqual(merged.payload.appearance,{theme:'paper',light:'white'});assert.equal(merged.payload.state.log.length,2);
+ assert.deepEqual(S.merge(p,[phone,pc]),merged);assert.deepEqual(S.merge(merged.payload,[pc,phone]),merged);
+ assert.equal(S.delta(merged.payload,structuredClone(merged.payload)),null);
+});
+test('appearance-only journals preserve review data and reject invalid themes',()=>{
+ const p=fixture(),doc=j('pc',[e('theme',10,{appearance:{theme:'white',light:'paper'}})]);
+ const result=S.merge(p,[doc]);assert.deepEqual(result.payload.state,p.state);
+ assert.throws(()=>S.merge(p,[j('bad',[e('bad',11,{appearance:{theme:'unsupported',light:'paper'}})])]));
+});
 test('two devices writing independent files retain both reviews and identical merged view',()=>{
  const a=j('pc',[e('a',10,{logs:[['a',2,3,{sienId:'a'}]],states:{a:{fsrs:{reps:10}}}})]),b=j('phone',[e('b',11,{logs:[['b',2,4,{sienId:'b'}]],states:{b:{fsrs:{reps:1}}}})]);
  assert.deepEqual(S.merge(fixture(),[a,b]),S.merge(fixture(),[b,a]));assert.equal(S.merge(fixture(),[a,b]).payload.state.log.length,3);
