@@ -4,6 +4,7 @@
   const S=SienStudy,WEB='anki_fsrs_sync_data.json',PENDING='sien-pending-v1:',CACHE='sien-view-v1';
   let baseline=null,clock=0,applying=false,ready=false,chain=Promise.resolve(),timer=null;
   let custom='[]',deleted=new Set(),fileCache=new Map(),deviceId='';
+  let fileScope='',filesDirty=false;
   const explicitUndo=new Set();
   const copy=x=>JSON.parse(JSON.stringify(x));
   const empty=()=>({version:1,cards:[],decks:[],state:{cards:{},log:[]}});
@@ -53,6 +54,7 @@
   }
   function apply(p,blocked=[]){
     const displayed=$('scrSolve')?.classList.contains('on')?cur()?.id:null;
+    const displayedContent=displayed?JSON.stringify(S.cleanCard(cur())):'';
     S.validPayload(p);applying=true;
     try{
       deleted=new Set(blocked);DATA=p.cards.filter(c=>!deleted.has(c.id)).map(c=>copy(c));BYID={};
@@ -62,12 +64,16 @@
       ALLTAGS=[...new Set(DATA.flatMap(c=>c.tags||[]))];ALLTYPS=[...new Set(DATA.map(c=>c.typ).filter(Boolean))];SUBJECTS=[...new Set(DATA.map(c=>c.subj).filter(Boolean))];
       TREE=null;_prMemo=null;lastRevIdx=null;firstRevIdx=null;
       // Keep the current queue position; remove deleted entries without replaying answered cards.
-      if(Array.isArray(queue)){const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)).map(c=>Object.assign(c,BYID[c.id]||{}));queue=[...before,...rest];qPos=before.length;}
+      if(Array.isArray(queue)){const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)).map(c=>BYID[c.id]?{...BYID[c.id],...Object.fromEntries(Object.entries(c).filter(([k])=>k.startsWith('_')&&k!=='_i'))}:c);queue=[...before,...rest];qPos=before.length;}
       baseline=payload();syncDeckDropdowns();renderDeckHub();renderHome();renderList();renderStats();
     }finally{applying=false;}
     if(displayed&&$('scrSolve').classList.contains('on')){
       if(cur()?.id!==displayed||!SienLearning.ready(cur()))showCard();
-      else if(revealed)intervalsPreview(cur());
+      else {
+        const c=cur();
+        if(displayedContent!==JSON.stringify(S.cleanCard(c))){SienRender.render($('cFront'),c,'f');fillBack(c);}
+        if(revealed)intervalsPreview(c);
+      }
     }
   }
   function waitForRequest(cfg,includeWrite=false){
@@ -96,23 +102,53 @@
     remoteWriteUntil=Date.now()+Math.max(0,Math.min(10000,(Date.parse(g.updated_at)||0)+10000-serverNow));
     return g;
   }
+  async function loadFiles(cfg){
+    const scope=cfg.username.toLowerCase()+':'+cfg.gistId;
+    if(fileScope===scope)return;
+    fileScope=scope;fileCache.clear();filesDirty=false;
+    const saved=await idbGet('sien-remote-files-v1:'+scope);
+    if(saved?.schema===1&&Array.isArray(saved.entries))for(const row of saved.entries){
+      if(Array.isArray(row)&&typeof row[0]==='string'&&row[1]&&typeof row[1].url==='string')fileCache.set(row[0],row[1]);
+    }
+  }
+  async function saveFiles(names){
+    const keep=new Set(names);
+    for(const name of fileCache.keys())if(!keep.has(name)){fileCache.delete(name);filesDirty=true;}
+    if(!filesDirty||!fileScope)return;
+    // Optional download cache. Failure must not affect the durable answer outbox.
+    try{await put('sien-remote-files-v1:'+fileScope,{schema:1,entries:[...fileCache]});filesDirty=false;}catch{}
+  }
   async function readFile(f,name){
     const cached=fileCache.get(name);if(f.raw_url&&cached?.url===f.raw_url)return cached.value;
     let value;
     if(f.truncated){const u=new URL(f.raw_url);if(u.protocol!=='https:'||u.hostname!=='gist.githubusercontent.com')throw new Error('원격 파일 주소가 올바르지 않습니다.');value=await N.request(u.href,{cache:'no-store'},'file');}
     else try{value=JSON.parse(f.content);}catch{throw new N.Failure('DATA','file');}
-    fileCache.set(name,{url:f.raw_url,value});return value;
+    fileCache.set(name,{url:f.raw_url,value});filesDirty=true;return value;
   }
 
   async function read(g){
     if(!g.files?.[WEB])throw new Error('기존 카드 파일을 찾지 못했습니다.');
+    const names=Object.keys(g.files).filter(n=>n===WEB||n==='sien-obsidian-base-v2.json'||n.startsWith(S.PREFIX)||n.startsWith(S.BASE)||n.startsWith('sien-obsidian-lifecycle-'));
+    let cursor=0,failure;
+    // Bound parallelism; await every started read before a retry can begin.
+    await Promise.all(Array.from({length:Math.min(3,names.length)},async()=>{
+      while(cursor<names.length&&!failure){const name=names[cursor++];try{await readFile(g.files[name],name);}catch(e){failure||=e;}}
+    }));
+    if(failure)throw failure;
     const p=S.validPayload(await readFile(g.files[WEB],WEB)),docs=[],blocked=[];let vaultId='';
     for(const [name,f]of Object.entries(g.files)){
       if(name.startsWith(S.PREFIX)||name.startsWith(S.BASE))docs.push(S.validateDoc(await readFile(f,name)));
       if(name.startsWith('sien-obsidian-lifecycle-')){const d=await readFile(f,name);if(d.schema!==1||!Array.isArray(d.blocked))throw new Error('삭제 보호 기록이 손상되었습니다.');blocked.push(...d.blocked);}
       if(name==='sien-obsidian-base-v2.json')vaultId=(await readFile(f,name)).vaultId;
     }
-    return {p,docs,blocked,vaultId};
+    await saveFiles(names);return {p,docs,blocked,vaultId};
+  }
+  async function receiveView(remote){
+    capture();await chain;
+    const merge=()=>S.merge(remote.p,[...remote.docs,{schema:1,kind:'journal',deviceId,sequence:0,events:pending()}],remote.blocked);
+    let merged=merge();await put(CACHE,merged.payload);
+    // A grade can arrive while IndexedDB is committing; retain it in the view and outbox.
+    capture();merged=merge();clock=Math.max(clock,merged.clock);apply(merged.payload,merged.deleted);
   }
   let activeSync=null;
   function sync(manual=false){
@@ -141,6 +177,7 @@
         if(document.visibilityState==='hidden'&&!manual)return false;
         capture();await chain;
         const ownId=await idbGet('sien-device-v1');deviceId=ownId||crypto.randomUUID();if(!ownId)await put('sien-device-v1',deviceId);
+        await loadFiles(cfg);
         let remote=await read(await api(cfg)),outbox=pending();
         const files=S.append(remote.docs,deviceId,outbox);
         if(!remote.docs.some(d=>d.kind==='base'))files[S.BASE+crypto.randomUUID()+'.json']={schema:1,kind:'base',state:copy(remote.p.state)};
@@ -152,26 +189,25 @@
         }
         if(Object.keys(files).length){
           const until=Math.max(N.pacing(localStorage,cfg.gistId).read().writeUntil,remoteWriteUntil);
-          if(until>Date.now()){N.pacing(localStorage,cfg.gistId).deferWrite(until);return defer(until,manual);}
+          if(until>Date.now()){await receiveView(remote);N.pacing(localStorage,cfg.gistId).deferWrite(until);return defer(until,manual);}
           remote=await read(await api(cfg,'PATCH',files));
           const stored=new Set(remote.docs.filter(d=>d.kind==='journal').flatMap(d=>d.events.map(e=>e.id)));
           if(outbox.some(e=>!stored.has(e.id)))throw new N.Failure('UNCONFIRMED','verify',{retryable:true});
         }
-        // A grade may arrive during either network request. Capture it before applying remote state.
-        capture();const currentPending=pending();
-        let merged=S.merge(remote.p,[...remote.docs,{schema:1,kind:'journal',deviceId,sequence:0,events:currentPending}],remote.blocked);
-        await put(CACHE,merged.payload);
-        capture();merged=S.merge(remote.p,[...remote.docs,{schema:1,kind:'journal',deviceId,sequence:0,events:pending()}],remote.blocked);
-        clock=Math.max(clock,merged.clock);apply(merged.payload,merged.deleted);
+        await receiveView(remote);
         for(const e of outbox)localStorage.removeItem(PENDING+e.id);
         dirtyFiles.clear();dirtyLogs.clear();saveDirtyLogs();setDirty(pending().length>0);lastPushAt=Date.now();ratedSincePush=0;
-        cfg.lastSyncAt=Date.now();saveGistConfig(cfg);setSyncStatusUI('synced');
+        cfg.lastSyncAt=Date.now();saveGistConfig(cfg);setSyncStatusUI(pendingCount()?'pending':'synced');
         if(failures)diagnostics.add({outcome:'recovered',stage:'verify',code:'LOCAL',pending:pendingCount(),hidden:document.visibilityState==='hidden'});
         failures=0;nextRetryAt=0;rateUntil=0;autoBlocked=false;hideBanner('gist');
         if(manual)toast('동기화가 완료되었습니다');if(pending().length)scheduleGistAutoSync();return true;
       });
     }catch(e){failed(e,manual);return false;}finally{isGistSyncing=false;lastGistPullTime=Date.now();}
   }
+  // The fork uses Gist journals only. Old repository settings must not reactivate
+  // the upstream ten-minute snapshot writer or a second persistence pipeline.
+  loadCfg=function(){cfg=null;};snapSoon=function(){};snapPut=async()=>{};
+  ghPut=async()=>{throw new Error('이 사이트는 GitHub 연동의 Gist 저장만 사용합니다.');};
   const oldGet=lsGet,oldSet=lsSet;
   lsGet=function(k){return k===getUserStorageKey('custom_cards')?custom:oldGet(k);};
   lsSet=function(k,v){if(k===getUserStorageKey('custom_cards')){custom=v;return true;}return oldSet(k,v);};
