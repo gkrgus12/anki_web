@@ -58,6 +58,8 @@
   function render(el,card,side){
     const text=String(side==='f'?(card.front||card.q||''):(card.back||card.a||''));
     el.replaceChildren();el.classList.add('sien-text');
+    // Managed Obsidian cards have Japanese questions; Korean answers retain their own wrapping.
+    if(side==='f'&&card.sien?.v===1)el.lang='ja';else el.removeAttribute('lang');
     const ranges=card.sien?.v===1&&Array.isArray(card.sien[side])?card.sien[side].filter(r=>Array.isArray(r)&&Number.isInteger(r[0])&&Number.isInteger(r[1])&&r[0]>=0&&r[1]>0&&r[0]+r[1]<=text.length&&tags[r[2]]):[];
     const footerAt=side==='b'&&card.sien?.v===1&&Number.isInteger(card.sien.footerStart)&&card.sien.footerStart>=0&&card.sien.footerStart<text.length?card.sien.footerStart:null;
     const notes=side==='b'&&card.sien?.v===1?validBlocks(card.sien.blocks,footerAt??text.length):[];
