@@ -12,7 +12,7 @@
   try{const saved=JSON.parse(localStorage.getItem(KEY));if(saved?.v===1){const seen=new Set();for(const [id]of actions){const keys=saved.bindings[id];if(Array.isArray(keys)&&keys.every(k=>typeof k==='string'&&!seen.has(k))){bindings[id]=keys;keys.forEach(k=>seen.add(k));}}}}catch{}
   function label(k){return k.replace(/Key([A-Z])/g,'$1').replace(/Digit([0-9])/g,'$1').replace('ArrowUp','↑').replace('ArrowDown','↓').replace('ArrowLeft','←').replace('ArrowRight','→').replace('Slash','/').replace('Escape','Esc').replace('Numpad','Num ');}
   function chord(e){const code=e.code||({ ' ':'Space',Enter:'Enter',Escape:'Escape' }[e.key])||'';return (e.ctrlKey?'Ctrl+':'')+(e.altKey?'Alt+':'')+(e.shiftKey?'Shift+':'')+code;}
-  function save(){localStorage.setItem(KEY,JSON.stringify({v:1,bindings}));render();hints();}
+  function save(){localStorage.setItem(KEY,JSON.stringify({v:1,bindings}));render();hints();window.SienApp?.capture();}
   function status(t){$('sienKeyStatus').textContent=t;}
   function render(){
     const box=$('keyboardMap');if(!box)return;box.replaceChildren();
@@ -59,5 +59,5 @@
     if(/^flag[1-4]$/.test(action)){const c=cur();if(c){toggleFlagType(c,FLAG_TYPES[Number(action.slice(4))-1]);syncRail();}return;}
   }
   $('keyboardReset').onclick=()=>{bindings=defaults();capture=null;save();status('기본 키 배치로 복원했습니다.');};
-  window.SienKeys={handle,render,hints,cancel(){capture=null;}};render();hints();
+  window.SienKeys={handle,render,hints,settings:()=>({v:1,bindings:JSON.parse(JSON.stringify(bindings))}),receive(value){if(value?.v!==1||!value.bindings)return;bindings={...defaults(),...value.bindings};localStorage.setItem(KEY,JSON.stringify({v:1,bindings}));render();hints();},cancel(){capture=null;}};render();hints();
 })();

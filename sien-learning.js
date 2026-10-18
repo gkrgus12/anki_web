@@ -41,8 +41,12 @@
   }
   function start(sx){
     if(!sx||sx.how?.order==='doc')return;
+    if(sx.sienOrderDay===todayKey()&&Array.isArray(sx.sienOrder)){
+      const rank=new Map(sx.sienOrder.map((id,i)=>[id,i]));queue.sort((a,b)=>(rank.get(a.id)??Infinity)-(rank.get(b.id)??Infinity));return;
+    }
     if(sx.sienMixVersion===1&&sx.sienMixDay===todayKey())return;
     queue=SienQueue.mix(queue,kind);
+    sx.sienOrder=queue.map(c=>c.id);sx.sienOrderDay=todayKey();
     sx.sienMixVersion=1;sx.sienMixDay=todayKey();
     // Persist the remaining order, so restarting cannot postpone the next new card.
     syncSessQueue();

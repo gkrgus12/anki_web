@@ -1,6 +1,7 @@
 /* Personal Gist transport. Each browser owns its journal; no whole-collection PUT. */
 (function(){
   'use strict';
+  if(!window.SienSessions){const url=new URL(location.href);if(url.searchParams.get('v')!=='20261018-21'){url.searchParams.set('v','20261018-21');location.replace(url.href);}else showBanner('학습 화면을 다시 불러와 주세요. 미전송 기록은 이 기기에 보관되어 있습니다.',false);return;}
   const S=SienStudy,WEB='anki_fsrs_sync_data.json',PENDING='sien-pending-v1:',CACHE='sien-view-v1';
   let baseline=null,clock=0,applying=false,ready=false,chain=Promise.resolve(),timer=null;
   let sharedAppearance=S.appearance();
@@ -41,7 +42,7 @@
   }
   async function put(key,value){const db=await idbOpen();try{await new Promise((resolve,reject)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(value,key);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('로컬 저장이 취소되었습니다.'));});}finally{db.close();}}
   function pending(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(PENDING)){const value=JSON.parse(localStorage.getItem(k));out.push(value);}}return out;}
-  function payload(){return {version:1,appearance:copy(sharedAppearance),cards:DATA.map(S.cleanCard),decks:copy(DECKS),state:{cards:copy(state.cards),log:copy(state.log)}};}
+  function payload(){return {version:1,appearance:copy(sharedAppearance),learning:SienSessions.snapshot(),cards:DATA.map(S.cleanCard),decks:copy(DECKS),state:{cards:copy(state.cards),log:copy(state.log)}};}
   function capture(){
     if(!ready||applying)return;
     const now=payload(),change=baseline&&S.delta(baseline,now);
@@ -50,6 +51,7 @@
     const e={id:crypto.randomUUID(),at:Math.max(Date.now(),clock+1),change};
     // Synchronous outbox before acknowledging the local mutation. Card caches live in IDB.
     try{localStorage.setItem(PENDING+e.id,JSON.stringify(e));}catch{throw new Error('학습 기록을 기기에 저장하지 못했습니다. 이 창을 닫지 말고 저장 공간을 확보해 주세요.');}
+    if(change.learning)now.learning=SienSessions.commit(now.learning,change.learning,e);
     for(const k of change.removedLogs||[])explicitUndo.delete(k);
     clock=e.at;baseline=now;scheduleGistAutoSync();
     chain=chain.then(()=>put(CACHE,now)).catch(error);
@@ -62,13 +64,13 @@
       deleted=new Set(blocked);DATA=p.cards.filter(c=>!deleted.has(c.id)).map(c=>copy(c));BYID={};
       DATA.forEach((c,i)=>{c._i=i;normalizeCard(c);BYID[c.id]=c;});
       DECKS=copy(p.decks);custom=JSON.stringify(p.cards);state.cards=copy(p.state.cards);state.log=copy(p.state.log);
+      SienSessions.receive(p.learning);
       logWeeks={};for(const entry of state.log){const wk=weekKeyOf(logDate(entry));(logWeeks[wk]||=[]).push(entry);}
       ALLTAGS=[...new Set(DATA.flatMap(c=>c.tags||[]))];ALLTYPS=[...new Set(DATA.map(c=>c.typ).filter(Boolean))];SUBJECTS=[...new Set(DATA.map(c=>c.subj).filter(Boolean))];
       TREE=null;_prMemo=null;lastRevIdx=null;firstRevIdx=null;
       // Keep the current queue position; remove deleted entries without replaying answered cards.
       if(Array.isArray(queue)){
-        const activeDeck=curSess?.sienDeckId&&DECKS.find(d=>d.id===curSess.sienDeckId);
-        const allowed=activeDeck?new Set(deckDailyPlan(activeDeck).cards.map(c=>c.id)):null;
+        const allowed=curSess?new Set(SienSessions.plan(curSess).map(c=>c.id)):null;
         const before=queue.slice(0,qPos).filter(c=>!deleted.has(c.id));
         const rest=queue.slice(qPos).filter(c=>!deleted.has(c.id)&&(!allowed||allowed.has(c.id))).map(c=>BYID[c.id]?{...BYID[c.id],...Object.fromEntries(Object.entries(c).filter(([k])=>k.startsWith('_')&&k!=='_i'))}:c);
         queue=[...before,...rest];qPos=before.length;
@@ -251,6 +253,12 @@
     try{
       buildEngine();
       const cached=await idbGet(CACHE)||empty();
+      // Import a browser's pre-journal sessions once, at the oldest logical time.
+      // Per-field clocks let later shared edits/deletions win over this migration.
+      if(!cached.learning){
+        const change={learning:SienData.delta(null,SienSessions.initialize())};
+        const e={id:'migration-'+crypto.randomUUID(),at:1,change};localStorage.setItem(PENDING+e.id,JSON.stringify(e));
+      }
       const local=S.merge(cached,[{schema:1,kind:'journal',deviceId:'local',sequence:0,events:pending()}]);clock=local.clock;apply(local.payload,local.deleted);ready=true;
       if(getGistConfig()?.token)await sync(false);
     }catch(e){error(e);}

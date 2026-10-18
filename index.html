@@ -53,10 +53,11 @@ window.addEventListener('unhandledrejection', function(e) {
   });
 });
 </script>
-<link rel="stylesheet" href="sien.css?v=20261018-20">
-<script src="sien-day.js?v=20261018-20"></script>
-<script src="sien-study.js?v=20261018-20"></script>
-<script src="sien-render.js?v=20261018-20"></script>
+<link rel="stylesheet" href="sien.css?v=20261018-21">
+<script src="sien-day.js?v=20261018-21"></script>
+<script src="sien-data.js?v=20261018-21"></script>
+<script src="sien-study.js?v=20261018-21"></script>
+<script src="sien-render.js?v=20261018-21"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
 <script>/* 테마 — 첫 페인트 전에 적는다(깜빡임 방지). 옛 값 b → dark · c → paper (09-24) */
@@ -15633,7 +15634,6 @@ window.addEventListener('DOMContentLoaded', async()=>{
     }
     loadIv();
     await SienApp.boot();
-    if(!sessions.length) sessions=[newSessObj('전체 복습', HOW_TPL[0].how, {}, 'auto')];
     normalizeSessions();
   } catch(e) { showBanner(e.message||'초기화 실패',false); }
   finally { $('loading').style.display='none'; if(!curSess)go('scrHome'); renderHome(); window.sienBootComplete=true; }
@@ -18740,13 +18740,14 @@ if(document.readyState === 'loading'){
 setTimeout(safeHideLoading, 1500);
 
 </script>
-<script src="sien-sm2.js?v=20261018-20"></script>
-<script src="sien-queue.js?v=20261018-20"></script>
-<script src="sien-learning.js?v=20261018-20"></script>
-<script src="sien-keys.js?v=20261018-20"></script>
-<script src="sien-pokes.js?v=20261018-20"></script>
-<script src="sien-network.js?v=20261018-20"></script>
-<script src="sien-app.js?v=20261018-20"></script>
-<script src="sien-embed.js?v=20261018-20"></script>
+<script src="sien-sm2.js?v=20261018-21"></script>
+<script src="sien-queue.js?v=20261018-21"></script>
+<script src="sien-learning.js?v=20261018-21"></script>
+<script src="sien-keys.js?v=20261018-21"></script>
+<script src="sien-pokes.js?v=20261018-21"></script>
+<script src="sien-network.js?v=20261018-21"></script>
+<script src="sien-sessions.js?v=20261018-21"></script>
+<script src="sien-app.js?v=20261018-21"></script>
+<script src="sien-embed.js?v=20261018-21"></script>
 </body>
 </html>

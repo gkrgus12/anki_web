@@ -1,5 +1,6 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.SienStudy=factory();})(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
+  const L=typeof module==='object'&&module.exports?require('./sien-data'):(typeof SienData==='object'?SienData:{valid:x=>x,validate(){},apply:x=>x,delta:()=>[]});
   const PREFIX='sien-study-device-',BASE='sien-study-base-';
   const clone=x=>JSON.parse(JSON.stringify(x));
   const logKey=e=>e?.[3]?.sienId?'event:'+e[3].sienId:JSON.stringify(e);
@@ -7,7 +8,7 @@
   const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
   function appearance(value){return {theme:['auto','white','paper','dark'].includes(value?.theme)?value.theme:'paper',light:value?.light==='white'?'white':'paper'};}
   function validAppearance(value){if(!object(value)||!['auto','white','paper','dark'].includes(value.theme)||!['white','paper'].includes(value.light))throw new Error('테마 설정 형식이 올바르지 않습니다.');}
-  function validPayload(p){if(!p||p.version!==1||!Array.isArray(p.cards)||!Array.isArray(p.decks)||!object(p.state?.cards)||!Array.isArray(p.state.log))throw new Error('학습 데이터 형식을 확인할 수 없어 동기화를 중단했습니다.');return p;}
+  function validPayload(p){if(!p||p.version!==1||!Array.isArray(p.cards)||!Array.isArray(p.decks)||!object(p.state?.cards)||!Array.isArray(p.state.log))throw new Error('학습 데이터 형식을 확인할 수 없어 동기화를 중단했습니다.');if(p.learning)L.valid(p.learning);return p;}
   function validateDoc(doc){
     if(doc?.schema!==1||!['base','journal'].includes(doc.kind))throw new Error('학습 변경 기록 형식이 올바르지 않습니다.');
     if(doc.kind==='base'){if(!object(doc.state?.cards)||!Array.isArray(doc.state?.log))throw new Error('기존 학습 기록 보호 사본이 손상되었습니다.');return doc;}
@@ -16,6 +17,7 @@
       for(const name of ['cards','decks','deleted','deletedDecks','logs','removedLogs'])if(e.change[name]!==undefined&&!Array.isArray(e.change[name]))throw new Error('학습 변경 항목 목록이 손상되었습니다.');
       if(e.change.states!==undefined&&!object(e.change.states))throw new Error('복습 상태 변경 항목이 손상되었습니다.');
       if(e.change.appearance!==undefined)validAppearance(e.change.appearance);
+      if(e.change.learning!==undefined)L.validate(e.change.learning);
     }return doc;
   }
   function merge(payload,documents=[],blocked=[]){
@@ -30,6 +32,7 @@
     const removed=new Set();
     for(const e of [...events.values()].sort((a,b)=>a.at-b.at||a.id.localeCompare(b.id))){const c=e.change;
       if(c.appearance!==undefined)next.appearance=appearance(c.appearance);
+      if(c.learning!==undefined)next.learning=L.apply(next.learning,c.learning,e);
       for(const id of c.deleted||[])deleted.add(id);
       for(const id of c.deletedDecks||[])deletedDecks.add(id);
       for(const card of c.cards||[])if(card?.id){const old=cards.get(card.id);if(!old||(card.updatedAt||0)>=(old.updatedAt||0))cards.set(card.id,clone(card));}
@@ -46,6 +49,7 @@
   function cleanCard(c){const out={};for(const [key,value]of Object.entries(c)){if(!key.startsWith('_')&&!['q','a'].includes(key))out[key]=value;}return out;}
   function delta(before,after){
     validPayload(before);validPayload(after);const c={};
+    const learning=L.delta(before.learning,after.learning);if(learning.length)c.learning=learning;
     if(JSON.stringify(appearance(before.appearance))!==JSON.stringify(appearance(after.appearance)))c.appearance=appearance(after.appearance);
     for(const [name,key]of [['cards','cards'],['decks','decks']]){
       const old=new Map(before[key].map(x=>[x.id,JSON.stringify(name==='cards'?cleanCard(x):x)]));
