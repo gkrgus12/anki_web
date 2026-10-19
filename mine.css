@@ -102,17 +102,13 @@
     /* iOS 26 (iPhone 17) ends the web-app viewport ~60pt above the screen edge; sien-mine.js measures that gap
        (screen height - viewport height) so bottom bars do not pad twice. */
     --sa-bottom-eff:max(calc(var(--sa-bottom) - var(--viewport-gap,0px)),0px)}
-  /* The area iOS leaves below the viewport is painted with the document background: match the docked tab bar. */
-  html.sien-standalone,html.sien-standalone body{background:var(--c-card)}
-  html.sien-standalone #app{background:var(--c-bg)}
-  html.sien-standalone:has(#scrSolve.on),html.sien-standalone:has(#scrSolve.on) body{background:var(--c-bg)}
   /* The 설정 tab replaces the home gear. */
   body #btnSettingsP{display:none}
   body{padding-top:0;padding-bottom:0}
   body #main{padding-top:0;padding-bottom:0}
   /* Home */
   body #scrHome{padding-top:0}
-  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(66px + 16px + var(--sa-bottom-eff))}
+  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(62px + 8px + 16px + var(--sa-bottom-eff))}
   body .home-head{padding-top:0}
   body #btnSettingsP{position:static}
   body .home-head > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
@@ -120,7 +116,8 @@
   body .home-head #btnSettingsP{order:1}
   body #btnUserAccount{white-space:nowrap}
   /* Tab bar docked to the bottom edge, covering the home-indicator zone like a native tab bar. */
-  body #tabBar{left:0;right:0;bottom:0;height:auto;border-radius:22px 22px 0 0;padding:6px 10px calc(6px + var(--sa-bottom-eff));background:var(--c-card);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 -.5px 0 var(--c-sep)}
+  /* Floating pill (upstream look) just above the home indicator; the strip below it is blurred in the home-screen app. */
+  body #tabBar{bottom:calc(8px + var(--sa-bottom-eff))}
   /* Sub screens (card browser, stats, study, sessions): head below the status bar, body scrolls to the very end. */
   body .sub-head{padding-top:calc(16px + var(--sa-top))}
   body .sub-body{padding-bottom:calc(24px + var(--sa-bottom-eff))}
@@ -139,7 +136,6 @@
   html.sien-standalone #main::before{top:0;height:var(--sa-top)}
   html.sien-standalone #main::after{bottom:0;height:var(--sa-bottom-eff)}
   html.sien-standalone #main:has(#scrSolve.on)::before{display:none}   /* the study top bar is in flow under the status bar already */
-  html.sien-standalone #main:not(:has(#scrSolve.on))::after{display:none}   /* the docked tab bar covers the bottom inset */
 }
 /* Sheet badges (Gist 연동 · 동기화 켜짐 · 로컬 전용): the deck-count badge rule removed their side padding. */
 @media (max-width:759px){
@@ -196,7 +192,7 @@
   body .sub-inner > div{min-width:0}
   /* The tab bar lives in #main now (moved by sien-mine.js), so it shows on every screen except study. */
   body #main:has(#scrSolve.on) #tabBar{display:none}
-  body .sub-body{padding-bottom:calc(66px + 20px + var(--sa-bottom-eff))}
+  body .sub-body{padding-bottom:calc(62px + 8px + 20px + var(--sa-bottom-eff))}
 }
 
 /* ── iOS optical centering: with the system font, Hangul labels sit about 1px below the box centre.
@@ -226,7 +222,7 @@
 /* ── Settings as a page on phones (upstream's desktop page mode, switched on by sien-mine.js). ── */
 @media (max-width:759px){
   body #ovlSettings.page{left:0;padding:0}
-  body #ovlSettings.page .sheet{padding:calc(var(--sa-top) + 16px) var(--sp-m) calc(66px + 20px + var(--sa-bottom-eff))}
+  body #ovlSettings.page .sheet{padding:calc(var(--sa-top) + 16px) var(--sp-m) calc(62px + 8px + 20px + var(--sa-bottom-eff))}
   body #ovlSettings.page::before{content:'';position:fixed;left:0;right:0;top:0;height:var(--sa-top);z-index:1;pointer-events:none;
     background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
   /* Tab bar above the settings page, but below any modal opened from it. */

@@ -1,0 +1,10 @@
+{
+  "name": "카드",
+  "short_name": "카드",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F2EEE6",
+  "theme_color": "#F2EEE6",
+  "icons": [{ "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }]
+}

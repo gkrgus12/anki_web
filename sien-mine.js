@@ -196,7 +196,7 @@
     if(typeof origGo==='function'&&tabBar)g.go=function(id){
       if(phone()&&settingsOpen()){settings.classList.remove('show','page');}   // another tab closes the settings page
       const r=origGo.apply(this,arguments);
-      try{markTabs(id);syncThemeColor();}catch{}
+      try{markTabs(id);}catch{}
       return r;
     };
     // Settings opens as a full page on phones: upstream's page mode (sidebar layout) with the tab bar kept on top.
@@ -219,19 +219,7 @@
       // iOS 26 keeps part of the screen below the web-app viewport; expose that gap so bottom bars do not pad twice.
       const gap=on&&innerHeight>innerWidth?Math.max(0,(screen?.height||0)-innerHeight):0;
       document.documentElement.style.setProperty('--viewport-gap',Math.round(gap)+'px');
-      syncThemeColor();
     };
-    // iOS paints the strip it keeps below the web-app viewport with the theme colour; match the docked tab bar there.
-    function syncThemeColor(){
-      try{
-        const meta=document.querySelector('meta[name=theme-color]');if(!meta)return;
-        const on=document.documentElement.classList.contains('sien-standalone')&&phone()&&!$('scrSolve')?.classList.contains('on');
-        const want=getComputedStyle(document.documentElement).getPropertyValue(on?'--c-card':'--c-bg').trim();
-        if(want)meta.content=want;
-      }catch{}
-    }
-    const origApplyTheme=g.applyTheme;
-    if(typeof origApplyTheme==='function')g.applyTheme=function(){const r=origApplyTheme.apply(this,arguments);syncThemeColor();return r;};
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
     addEventListener('resize',mark);addEventListener('orientationchange',mark);
 
