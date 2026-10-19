@@ -185,12 +185,35 @@
     // keeps every handler (same elements) and lets CSS show it on the sub screens; the active tab follows go().
     const tabBar=$('tabBar'),main=$('main');
     if(tabBar&&main&&!main.contains(tabBar)===false&&tabBar.parentElement!==main)main.append(tabBar);
+    const phone=()=>matchMedia('(max-width: 759px)').matches;
+    const settings=$('ovlSettings');
+    const settingsOpen=()=>!!settings?.classList.contains('show');
+    function markTabs(id){
+      for(const [tab,screen]of [['tabToday','scrHome'],['tabCards','scrList'],['tabStats','scrStats']])$(tab)?.classList.toggle('on',id===screen&&!settingsOpen());
+      $('tabSetup')?.classList.toggle('on',settingsOpen());
+    }
     const origGo=g.go;
     if(typeof origGo==='function'&&tabBar)g.go=function(id){
+      if(phone()&&settingsOpen()){settings.classList.remove('show','page');}   // another tab closes the settings page
       const r=origGo.apply(this,arguments);
-      try{for(const [tab,screen]of [['tabToday','scrHome'],['tabCards','scrList'],['tabStats','scrStats']])$(tab)?.classList.toggle('on',id===screen);$('tabSetup')?.classList.remove('on');}catch{}
+      try{markTabs(id);}catch{}
       return r;
     };
+    // Settings opens as a full page on phones: upstream's page mode (sidebar layout) with the tab bar kept on top.
+    const btnSettings=$('btnSettings');
+    if(btnSettings&&settings){
+      const origOpen=btnSettings.onclick;
+      btnSettings.onclick=function(){
+        const r=origOpen?.apply(this,arguments);
+        if(phone()){settings.classList.add('page');settings.style.setProperty('--set-left','0px');settings.style.setProperty('--set-top','0px');settings.scrollTop=0;settings.querySelector('.sheet')?.scrollTo?.(0,0);}
+        try{markTabs(document.querySelector('.scr.on')?.id);}catch{}
+        return r;
+      };
+      // The 설정 tab used to open the Gist modal; that stays reachable from the page's GitHub 연결 button.
+      // Upstream assigns this tab's onclick later during init, so a capturing listener takes it over.
+      $('tabSetup')?.addEventListener('click',e=>{e.stopImmediatePropagation();if(settingsOpen()){settings.classList.remove('show','page');markTabs(document.querySelector('.scr.on')?.id);return;}btnSettings.click();},true);
+      for(const id of ['setClose','setCloseX'])$(id)?.addEventListener('click',()=>setTimeout(()=>markTabs(document.querySelector('.scr.on')?.id),0));
+    }
     const mark=()=>{
       const on=standalone(navigator,q=>matchMedia(q));document.documentElement.classList.toggle('sien-standalone',on);
       // iOS 26 keeps part of the screen below the web-app viewport; expose that gap so bottom bars do not pad twice.

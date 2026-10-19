@@ -217,3 +217,14 @@
     body .sub-inner select,body .sheet select{padding-top:calc(.5em - var(--n2)) !important;padding-bottom:calc(.5em + var(--n2)) !important}
   }
 }
+
+/* ── Settings as a page on phones (upstream's desktop page mode, switched on by sien-mine.js). ── */
+@media (max-width:759px){
+  body #ovlSettings.page{left:0;padding:0}
+  body #ovlSettings.page .sheet{padding:calc(var(--sa-top) + 16px) var(--sp-m) calc(66px + 20px + var(--sa-bottom-eff))}
+  body #ovlSettings.page::before{content:'';position:fixed;left:0;right:0;top:0;height:var(--sa-top);z-index:1;pointer-events:none;
+    background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+  /* Tab bar above the settings page, but below any modal opened from it. */
+  body:has(#ovlSettings.show.page) #tabBar{z-index:61}
+  body:has(.ovl.show:not(#ovlSettings)) #tabBar{z-index:20}
+}
