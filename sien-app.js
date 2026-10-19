@@ -1,7 +1,7 @@
 /* Personal Gist transport. Each browser owns its journal; no whole-collection PUT. */
 (function(){
   'use strict';
-  if(!window.SienSessions){const url=new URL(location.href);if(url.searchParams.get('v')!=='20261019-37'){url.searchParams.set('v','20261019-37');location.replace(url.href);}else showBanner('학습 화면을 다시 불러와 주세요. 미전송 기록은 이 기기에 보관되어 있습니다.',false);return;}
+  if(!window.SienSessions){const url=new URL(location.href);if(url.searchParams.get('v')!=='20261019-38'){url.searchParams.set('v','20261019-38');location.replace(url.href);}else showBanner('학습 화면을 다시 불러와 주세요. 미전송 기록은 이 기기에 보관되어 있습니다.',false);return;}
   const S=SienStudy,WEB='anki_fsrs_sync_data.json',PENDING='sien-pending-v1:',CACHE='sien-view-v1';
   let baseline=null,clock=0,applying=false,ready=false,chain=Promise.resolve(),timer=null;
   let sharedAppearance=S.appearance();
