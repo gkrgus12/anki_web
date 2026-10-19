@@ -102,6 +102,10 @@
     /* iOS 26 (iPhone 17) ends the web-app viewport ~60pt above the screen edge; sien-mine.js measures that gap
        (screen height - viewport height) so bottom bars do not pad twice. */
     --sa-bottom-eff:max(calc(var(--sa-bottom) - var(--viewport-gap,0px)),0px)}
+  /* iOS 26 home-screen apps with viewport-fit=cover + black-translucent status bar lay out ~60pt (the status
+     bar) short of the screen (WebKit 301108). Asking for that height back is what makes bottom:0 reach the edge;
+     the viewport-gap measurement above covers devices where it does not. */
+  html.sien-standalone{min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}
   /* The 설정 tab replaces the home gear. */
   body #btnSettingsP{display:none}
   body{padding-top:0;padding-bottom:0}
