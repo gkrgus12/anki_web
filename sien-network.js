@@ -1,7 +1,7 @@
 /* Transport errors and local, redacted diagnostics shared by the Gist UI. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SienNetwork=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const VERSION='20261019-40',KEY='sien-sync-errors-v1';
+  const VERSION='20261019-41',KEY='sien-sync-errors-v1';
   const LABELS={metadata:'변경 목록 수신',file:'학습 파일 수신',write:'학습 기록 전송',verify:'전송 확인',local:'기기 저장'};
   class Failure extends Error{
     constructor(code,stage,options={}){super(options.message||message(code,stage,options.status));this.name='SyncFailure';this.code=code;this.stage=stage;this.status=options.status||0;this.retryable=!!options.retryable;this.retryAt=options.retryAt||0;this.durationMs=options.durationMs||0;this.rate=cleanRate(options.rate);}
