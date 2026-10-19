@@ -103,8 +103,11 @@
        (screen height - viewport height) so bottom bars do not pad twice. */
     --sa-bottom-eff:max(calc(var(--sa-bottom) - var(--viewport-gap,0px)),0px)}
   /* The area iOS leaves below the viewport is painted with the document background: match the docked tab bar. */
-  html.sien-standalone{background:var(--c-card)}
-  html.sien-standalone:has(#scrSolve.on){background:var(--c-bg)}
+  html.sien-standalone,html.sien-standalone body{background:var(--c-card)}
+  html.sien-standalone #app{background:var(--c-bg)}
+  html.sien-standalone:has(#scrSolve.on),html.sien-standalone:has(#scrSolve.on) body{background:var(--c-bg)}
+  /* The 설정 tab replaces the home gear. */
+  body #btnSettingsP{display:none}
   body{padding-top:0;padding-bottom:0}
   body #main{padding-top:0;padding-bottom:0}
   /* Home */
@@ -183,7 +186,9 @@
 
 /* ── Phones: no sideways panning, and the tab bar stays on the sub screens (card browser, stats, study). ── */
 @media (max-width:759px){
-  html,body{overflow-x:hidden}
+  /* body's overflow:hidden must propagate to the viewport (html stays visible); an html overflow rule here made
+     iOS treat the document as scrollable, so swipes on the tab bar moved the page. */
+  body{overflow:hidden}
   body #main,body .scr,body .sub-body,body .sub-inner{min-width:0;max-width:100%}
   body .sub-body{overflow-x:hidden}
   /* A select is as wide as its longest option unless told otherwise; that is what pushed the card browser past the edge. */
