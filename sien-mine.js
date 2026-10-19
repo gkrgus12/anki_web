@@ -43,6 +43,13 @@
   // Same test upstream uses for its 15px standalone offset; exposed as a class so CSS can target the home-screen app.
   function standalone(nav,mm){return !!(nav?.standalone||mm?.('(display-mode: standalone)')?.matches);}
   function queueGrew(before,after){const had=new Set(before||[]);return (after||[]).some(id=>!had.has(id));}
+  // One line of viewport facts for the foot of the settings page, so a phone screenshot shows what iOS gave the page.
+  function diag(m){
+    const n=v=>Number.isFinite(v)?String(Math.round(v)):'?';
+    const parts=[`뷰포트 ${n(m.vw)}×${n(m.vh)}`,`화면 ${n(m.sw)}×${n(m.sh)}`,`문서 ${n(m.docH)}`,`안전영역 위 ${n(m.saTop)} 아래 ${n(m.saBottom)}`,m.standalone?'홈 화면 앱':'브라우저'];
+    if(m.os)parts.push(m.os);if(m.version)parts.push('v'+m.version);
+    return parts.join(' · ');
+  }
   // The only place limits are computed stays deckDailyPlan. While it runs, the deck it was
   // called for sees its today-only boost through getDeckOptions; every other caller
   // (options modal, other decks, inheritance lookups) keeps the stored base values.
@@ -207,6 +214,7 @@
         const r=origOpen?.apply(this,arguments);
         if(phone()){settings.classList.add('page');settings.style.setProperty('--set-left','0px');settings.style.setProperty('--set-top','0px');settings.scrollTop=0;settings.querySelector('.sheet')?.scrollTo?.(0,0);}
         try{markTabs(document.querySelector('.scr.on')?.id);}catch{}
+        try{measure();}catch{}
         return r;
       };
       // The 설정 tab used to open the Gist modal; that stays reachable from the page's GitHub 연결 button.
@@ -214,11 +222,23 @@
       $('tabSetup')?.addEventListener('click',e=>{e.stopImmediatePropagation();if(settingsOpen()){settings.classList.remove('show','page');markTabs(document.querySelector('.scr.on')?.id);return;}btnSettings.click();},true);
       for(const id of ['setClose','setCloseX'])$(id)?.addEventListener('click',()=>setTimeout(()=>markTabs(document.querySelector('.scr.on')?.id),0));
     }
+    // Diagnostic line at the foot of the settings sheet: safe-area insets are read off a probe element
+    // because computed custom properties keep env() unresolved.
+    const diagLine=settings?.querySelector('.sheet')?.appendChild(Object.assign(document.createElement('div'),{className:'mine-diag'}));
+    const measure=()=>{
+      if(!diagLine)return;
+      let saTop=NaN,saBottom=NaN;
+      try{const p=document.createElement('div');p.style.cssText='position:fixed;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0';document.body.appendChild(p);const cs=getComputedStyle(p);saTop=parseFloat(cs.paddingTop);saBottom=parseFloat(cs.paddingBottom);p.remove();}catch{}
+      const os=(navigator.userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/)||[]).slice(1).filter(Boolean).join('.');
+      const version=(document.querySelector('script[src*="sien-mine.js"]')?.src.match(/[?&]v=([^&]+)/)||[])[1];
+      diagLine.textContent=diag({vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
+    };
     const mark=()=>{
       const on=standalone(navigator,q=>matchMedia(q));document.documentElement.classList.toggle('sien-standalone',on);
       // iOS 26 keeps part of the screen below the web-app viewport; expose that gap so bottom bars do not pad twice.
       const gap=on&&innerHeight>innerWidth?Math.max(0,(screen?.height||0)-innerHeight):0;
       document.documentElement.style.setProperty('--viewport-gap',Math.round(gap)+'px');
+      try{measure();}catch{}
     };
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
     addEventListener('resize',mark);addEventListener('orientationchange',mark);
@@ -241,5 +261,5 @@
       g[name]=function(){const r=orig.apply(this,arguments);try{cleanNote();}catch{}return r;};
     }
   }
-  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,wrapPlanning,install};
+  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,wrapPlanning,install};
 });

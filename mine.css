@@ -233,3 +233,5 @@
   body:has(#ovlSettings.show.page) #tabBar{z-index:61}
   body:has(.ovl.show:not(#ovlSettings)) #tabBar{z-index:20}
 }
+/* Viewport facts at the foot of the settings sheet; tap-select copies the whole line. */
+.mine-diag{margin-top:16px;font-size:12px;line-height:16px;color:var(--c-sec);text-align:center;word-break:keep-all;-webkit-user-select:all;user-select:all}
