@@ -87,3 +87,8 @@ test('Anki sound markers are hidden from notes; other text survives',()=>{
 test('plain cards are French on the front; plugin cards keep their own language',()=>{
  assert.equal(M.frontLang({front:'bonjour'}),'fr');assert.equal(M.frontLang({sien:{v:1}}),null);assert.equal(M.frontLang(null),'fr');
 });
+test('standalone detection matches upstream: navigator flag or display-mode query',()=>{
+ assert.equal(M.standalone({standalone:true},()=>({matches:false})),true);
+ assert.equal(M.standalone({},q=>({matches:q==='(display-mode: standalone)'})),true);
+ assert.equal(M.standalone({},()=>({matches:false})),false);assert.equal(M.standalone(undefined,undefined),false);
+});

@@ -40,6 +40,8 @@
   function stripSound(text){return String(text??'').replace(SOUND,'').trim();}
   // Plain (non-plugin) cards are French on the front and Korean on the back.
   function frontLang(card){return card?.sien?.v===1?null:'fr';}
+  // Same test upstream uses for its 15px standalone offset; exposed as a class so CSS can target the home-screen app.
+  function standalone(nav,mm){return !!(nav?.standalone||mm?.('(display-mode: standalone)')?.matches);}
   function queueGrew(before,after){const had=new Set(before||[]);return (after||[]).some(id=>!had.has(id));}
   // The only place limits are computed stays deckDailyPlan. While it runs, the deck it was
   // called for sees its today-only boost through getDeckOptions; every other caller
@@ -177,6 +179,9 @@
     if($('deckListArea')?.querySelector('.deck-tree-row'))try{decorate();}catch{}
     g.SienMine.boosts=()=>new Map(boosts);
 
+    const mark=()=>document.documentElement.classList.toggle('sien-standalone',standalone(navigator,q=>matchMedia(q)));
+    mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
+
     // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
     const origShow=g.showCard;
     if(typeof origShow==='function')g.showCard=function(){
@@ -195,5 +200,5 @@
       g[name]=function(){const r=orig.apply(this,arguments);try{cleanNote();}catch{}return r;};
     }
   }
-  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,wrapPlanning,install};
+  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,wrapPlanning,install};
 });

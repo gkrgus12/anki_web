@@ -93,3 +93,29 @@
   body #tbProg{gap:8px;padding:0 14px;flex:0 1 auto;min-width:0;overflow:hidden}
   body #tbSess::after{content:" ·"}
 }
+
+/* ── Home-screen app (standalone) on phones: use the safe areas instead of leaving empty bands.
+   html.sien-standalone is set by sien-mine.js with the same test upstream uses (navigator.standalone / display-mode). ── */
+@media (max-width:759px){
+  html.sien-standalone{--sat-extra:0px !important}           /* the iPad-measured 15px extra is not needed on iPhone */
+  html.sien-standalone body{padding-top:0;padding-bottom:0}
+  html.sien-standalone #main{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  /* Home: the list scrolls under the status bar and home indicator behind two blurred strips. */
+  html.sien-standalone #main:has(#scrHome.on){padding-top:0;padding-bottom:0}
+  html.sien-standalone #scrHome{padding-top:0}
+  html.sien-standalone #scrHome .home-inner{padding-top:calc(env(safe-area-inset-top) + 6px);padding-bottom:calc(62px + 12px + env(safe-area-inset-bottom))}
+  html.sien-standalone #scrHome::before,html.sien-standalone #scrHome::after{content:'';position:fixed;left:0;right:0;z-index:19;pointer-events:none;
+    background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+  html.sien-standalone #scrHome::before{top:0;height:env(safe-area-inset-top)}
+  html.sien-standalone #scrHome::after{bottom:0;height:env(safe-area-inset-bottom)}
+  html.sien-standalone .home-head{padding-top:0}
+  html.sien-standalone #btnSettingsP{position:static}         /* gear joins the account badge instead of its own 52px band */
+  html.sien-standalone .home-head > div:last-child{flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  html.sien-standalone .home-head > div:last-child{display:flex}
+  html.sien-standalone .home-head > div:last-child > *{order:2}
+  html.sien-standalone .home-head #btnSettingsP{order:1}
+  html.sien-standalone #btnUserAccount{white-space:nowrap}
+  html.sien-standalone #tabBar{bottom:env(safe-area-inset-bottom)}
+  /* Study: card and grade buttons start right at the safe areas. */
+  html.sien-standalone #scrSolve{padding-top:4px;padding-bottom:0}
+}
