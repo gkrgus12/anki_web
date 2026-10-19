@@ -94,30 +94,44 @@
   body #tbSess::after{content:" ·"}
 }
 
-/* ── Home-screen app (standalone) on phones: use the safe areas instead of leaving empty bands.
-   html.sien-standalone is set by sien-mine.js with the same test upstream uses (navigator.standalone / display-mode). ── */
+/* ── Safe areas on phones: content scrolls under the status bar and the bottom inset; only fixed bars sit
+   on the insets. env() is wrapped in --sa-* so the layout can be verified with injected values. ── */
 @media (max-width:759px){
-  html.sien-standalone{--sat-extra:0px !important}           /* the iPad-measured 15px extra is not needed on iPhone */
-  html.sien-standalone body{padding-top:0;padding-bottom:0}
-  html.sien-standalone #main{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
-  /* Home: the list scrolls under the status bar and home indicator behind two blurred strips. */
-  html.sien-standalone #main:has(#scrHome.on){padding-top:0;padding-bottom:0}
-  html.sien-standalone #scrHome{padding-top:0}
-  html.sien-standalone #scrHome .home-inner{padding-top:calc(env(safe-area-inset-top) + 6px);padding-bottom:calc(62px + 12px + env(safe-area-inset-bottom))}
-  html.sien-standalone #scrHome::before,html.sien-standalone #scrHome::after{content:'';position:fixed;left:0;right:0;z-index:19;pointer-events:none;
+  html:root{--sa-top:env(safe-area-inset-top);--sa-bottom:env(safe-area-inset-bottom);--sat-extra:0px !important}
+  body{padding-top:0;padding-bottom:0}
+  body #main{padding-top:0;padding-bottom:0}
+  /* Home */
+  body #scrHome{padding-top:0}
+  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(62px + 12px + var(--sa-bottom))}
+  body .home-head{padding-top:0}
+  body #btnSettingsP{position:static}
+  body .home-head > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  body .home-head > div:last-child > *{order:2}
+  body .home-head #btnSettingsP{order:1}
+  body #btnUserAccount{white-space:nowrap}
+  body #tabBar{bottom:var(--sa-bottom)}
+  /* Sub screens (card browser, stats, study, sessions): head below the status bar, body scrolls to the very end. */
+  body .sub-head{padding-top:calc(16px + var(--sa-top))}
+  body .sub-body{padding-bottom:calc(24px + var(--sa-bottom))}
+  /* Study: top bar below the status bar, grade buttons just above the bottom inset. */
+  body #topbar{padding-top:calc(4px + var(--sa-top));height:auto;min-height:calc(48px + var(--sa-top))}
+  body #scrSolve{padding-top:4px;padding-bottom:var(--sa-bottom)}
+  /* Modals keep the upstream inset padding, minus the iPad-only 15px. */
+}
+/* Home-screen app: blurred strips over both insets so scrolled content reads as a native bar, not a cut. */
+@media (max-width:759px){
+  html.sien-standalone #main::before,html.sien-standalone #main::after{content:'';position:fixed;left:0;right:0;z-index:19;pointer-events:none;
     background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
-  html.sien-standalone #scrHome::before{top:0;height:env(safe-area-inset-top)}
-  html.sien-standalone #scrHome::after{bottom:0;height:env(safe-area-inset-bottom)}
-  html.sien-standalone .home-head{padding-top:0}
-  html.sien-standalone #btnSettingsP{position:static}         /* gear joins the account badge instead of its own 52px band */
-  html.sien-standalone .home-head > div:last-child{flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
-  html.sien-standalone .home-head > div:last-child{display:flex}
-  html.sien-standalone .home-head > div:last-child > *{order:2}
-  html.sien-standalone .home-head #btnSettingsP{order:1}
-  html.sien-standalone #btnUserAccount{white-space:nowrap}
-  html.sien-standalone #tabBar{bottom:env(safe-area-inset-bottom)}
-  /* Study: card and grade buttons start right at the safe areas. */
-  html.sien-standalone #scrSolve{padding-top:4px;padding-bottom:0}
+  html.sien-standalone #main::before{top:0;height:var(--sa-top)}
+  html.sien-standalone #main::after{bottom:0;height:var(--sa-bottom)}
+  html.sien-standalone #main:has(#scrSolve.on)::before{display:none}   /* the study top bar is in flow under the status bar already */
+}
+/* Sheet badges (Gist 연동 · 동기화 켜짐 · 로컬 전용): the deck-count badge rule removed their side padding. */
+@media (max-width:759px){
+  body .sheet .ac-badge{display:inline-flex;align-items:center;min-width:0;padding:.25em .7em;line-height:1.5;white-space:nowrap;flex:0 0 auto;font-size:12px !important}
+  /* Stats deck selector: the deck-count label moves under the select instead of squeezing beside it. */
+  body #statDeckSelector{max-width:none !important;min-width:0}
+  body #scrStats .card-box:has(#statDeckSelector) > :last-child:not(div){flex:0 0 100%;text-align:right}
 }
 
 /* ── Buttons on phones: em padding, min-height instead of height, centered one-line labels (2026-10-19 audit). ── */
