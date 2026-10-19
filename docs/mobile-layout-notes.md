@@ -26,7 +26,10 @@
 - 원본의 홈 화면 앱용 `--sat-extra: 15px`(아이패드 iOS 27 블러 겹침 실측값)는 iPhone에서 불필요 → `!important`로 0.
 - **iOS 26 버그 (WebKit 301108)**: `viewport-fit=cover` + `apple-mobile-web-app-status-bar-style=black-translucent`인 홈 화면 앱은 뷰포트가 화면보다 **상태바 높이(약 60pt)만큼 짧다**. `100%`·`vh`·`dvh`가 전부 짧은 값을 주고, `position:fixed; bottom:0`도 그 위에서 멈춘다. 대응 두 겹:
   1. `html.sien-standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}` — frappe-ui가 iOS 26.2 시뮬레이터에서 `innerHeight` 812→874로 확인한 처방.
-  2. JS로 `screen.height - innerHeight`(세로 모드, standalone일 때만)를 `--viewport-gap`에 기록하고, 하단 패딩을 `--sa-bottom-eff: max(var(--sa-bottom) - var(--viewport-gap), 0)`로 계산해 인셋을 두 번 넣지 않는다.
+  2. (폐기) JS로 `screen.height - innerHeight`를 `--viewport-gap`에 기록해 인셋에서 빼는 방법. 아래 「해결 확인」 참고.
+- **해결 확인(2026-10-19, iPhone 17 · iOS 26.6.1 · 크롬에서 홈 화면 추가)**: 1번 min-height 한 줄로 탭 막대가 화면 끝까지 내려왔다. 2번 측정은 **쓰면 안 됐다**: 스크립트가 처음 잴 때는 뷰포트가 아직 짧아 간격 60이 기록되고, min-height 덕에 뷰포트가 커진 뒤에도 resize가 오지 않아 60이 남는다. 그 값을 인셋에서 빼니 막대가 홈 인디케이터 위에 바짝 붙었다(8pt). 지금은 인셋을 그대로 쓰고(`--sa-bottom-eff: var(--sa-bottom)`), 간격 값은 설정 페이지 진단 줄에만 보여 준다. 교훈: **iOS 뷰포트 치수를 JS로 재서 레이아웃에 넣지 말 것**. 한 번 잰 값은 금방 낡는다.
+- 설치 경로는 상관없다. 아이폰 크롬도 WebKit이고, iOS 16.4부터 크롬의 「홈 화면에 추가」도 사파리와 같은 시스템 웹 앱으로 열린다(iOS 26에서는 어느 브라우저든 기본이 웹 앱). 저장소만 브라우저와 분리된다.
+- 설정 페이지 맨 아래 진단 줄(`.mine-diag`): 뷰포트·화면·문서 높이, 간격, 안전영역 위/아래(`env()`를 패딩으로 준 probe 요소의 computed 값. 커스텀 속성의 computed 값은 `env()`가 풀리지 않는다), standalone 여부, UA의 iOS 버전, `?v=`. 실기기 스크린샷 한 장으로 상태를 읽기 위한 것.
 - 뷰포트 밖 영역은 iOS가 `theme-color`/배경색으로 칠한다. 색 맞추기는 임시방편이고, 근본은 위 min-height다.
 - `body{overflow:hidden}`은 `html`이 `visible`일 때만 뷰포트로 전파된다. `html`에 `overflow-x:hidden`을 넣는 순간 iOS가 문서를 스크롤 가능으로 보고 고정 바 위에서 페이지가 밀린다. 가로 넘침은 컨테이너의 `min-width:0`과 `.sub-body{overflow-x:hidden}`로 막는다.
 - `select`는 가장 긴 option 폭을 최소 폭으로 가진다. flex 안에서 `min-width:0; width:0; flex:1 1 0`을 주지 않으면 화면을 넘겨 옆으로 끌린다.

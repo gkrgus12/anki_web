@@ -93,8 +93,8 @@ test('standalone detection matches upstream: navigator flag or display-mode quer
  assert.equal(M.standalone({},()=>({matches:false})),false);assert.equal(M.standalone(undefined,undefined),false);
 });
 test('diagnostic line prints every measurement, marks unknowns, and omits absent extras',()=>{
- assert.equal(M.diag({vw:402,vh:874,sw:402,sh:874,docH:874,saTop:59,saBottom:34,standalone:true,os:'iOS 26.6.1',version:'20261019-34'}),
-  '뷰포트 402×874 · 화면 402×874 · 문서 874 · 안전영역 위 59 아래 34 · 홈 화면 앱 · iOS 26.6.1 · v20261019-34');
- assert.equal(M.diag({vw:1280,vh:999.6,sw:1280,sh:1000,docH:1000,saTop:NaN,saBottom:undefined,standalone:false,os:'',version:undefined}),
-  '뷰포트 1280×1000 · 화면 1280×1000 · 문서 1000 · 안전영역 위 ? 아래 ? · 브라우저');
+ assert.equal(M.diag({vw:402,vh:874,sw:402,sh:874,docH:874,gap:0,saTop:59,saBottom:34,standalone:true,os:'iOS 26.6.1',version:'20261019-34'}),
+  '뷰포트 402×874 · 화면 402×874 · 문서 874 · 간격 0 · 안전영역 위 59 아래 34 · 홈 화면 앱 · iOS 26.6.1 · v20261019-34');
+ assert.equal(M.diag({vw:1280,vh:999.6,sw:1280,sh:1000,docH:1000,gap:NaN,saTop:NaN,saBottom:undefined,standalone:false,os:'',version:undefined}),
+  '뷰포트 1280×1000 · 화면 1280×1000 · 문서 1000 · 간격 ? · 안전영역 위 ? 아래 ? · 브라우저');
 });

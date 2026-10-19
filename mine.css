@@ -99,12 +99,12 @@
 @media (max-width:759px){
   /* iOS 26 reported a 96pt bottom inset on iPhone 17 with nothing drawn there; the home indicator zone is 34pt. */
   html:root{--sa-top:env(safe-area-inset-top);--sa-bottom:min(env(safe-area-inset-bottom),34px);--sat-extra:0px !important;
-    /* iOS 26 (iPhone 17) ends the web-app viewport ~60pt above the screen edge; sien-mine.js measures that gap
-       (screen height - viewport height) so bottom bars do not pad twice. */
-    --sa-bottom-eff:max(calc(var(--sa-bottom) - var(--viewport-gap,0px)),0px)}
+    /* Kept as its own name so the bottom offset can be redefined in one place; it used to subtract the measured
+       viewport gap, which went stale once the min-height rule below made the viewport grow after load. */
+    --sa-bottom-eff:var(--sa-bottom)}
   /* iOS 26 home-screen apps with viewport-fit=cover + black-translucent status bar lay out ~60pt (the status
-     bar) short of the screen (WebKit 301108). Asking for that height back is what makes bottom:0 reach the edge;
-     the viewport-gap measurement above covers devices where it does not. */
+     bar) short of the screen (WebKit 301108). Asking for that height back is what makes bottom:0 reach the edge
+     (confirmed on iPhone 17, iOS 26.6.1, app installed from Chrome). */
   html.sien-standalone{min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}
   /* The 설정 tab replaces the home gear. */
   body #btnSettingsP{display:none}

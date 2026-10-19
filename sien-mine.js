@@ -46,7 +46,7 @@
   // One line of viewport facts for the foot of the settings page, so a phone screenshot shows what iOS gave the page.
   function diag(m){
     const n=v=>Number.isFinite(v)?String(Math.round(v)):'?';
-    const parts=[`뷰포트 ${n(m.vw)}×${n(m.vh)}`,`화면 ${n(m.sw)}×${n(m.sh)}`,`문서 ${n(m.docH)}`,`안전영역 위 ${n(m.saTop)} 아래 ${n(m.saBottom)}`,m.standalone?'홈 화면 앱':'브라우저'];
+    const parts=[`뷰포트 ${n(m.vw)}×${n(m.vh)}`,`화면 ${n(m.sw)}×${n(m.sh)}`,`문서 ${n(m.docH)}`,`간격 ${n(m.gap)}`,`안전영역 위 ${n(m.saTop)} 아래 ${n(m.saBottom)}`,m.standalone?'홈 화면 앱':'브라우저'];
     if(m.os)parts.push(m.os);if(m.version)parts.push('v'+m.version);
     return parts.join(' · ');
   }
@@ -231,17 +231,19 @@
       try{const p=document.createElement('div');p.style.cssText='position:fixed;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0';document.body.appendChild(p);const cs=getComputedStyle(p);saTop=parseFloat(cs.paddingTop);saBottom=parseFloat(cs.paddingBottom);p.remove();}catch{}
       const os=(navigator.userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/)||[]).slice(1).filter(Boolean).join('.');
       const version=(document.querySelector('script[src*="sien-mine.js"]')?.src.match(/[?&]v=([^&]+)/)||[])[1];
-      diagLine.textContent=diag({vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
+      diagLine.textContent=diag({vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,gap:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewport-gap')),saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
     };
     const mark=()=>{
       const on=standalone(navigator,q=>matchMedia(q));document.documentElement.classList.toggle('sien-standalone',on);
-      // iOS 26 keeps part of the screen below the web-app viewport; expose that gap so bottom bars do not pad twice.
+      // Screen height minus viewport height: 0 once iOS grants the full screen, ~60 while WebKit 301108 bites.
+      // Only the diagnostic line reads it now; the layout no longer subtracts it (it went stale after load).
       const gap=on&&innerHeight>innerWidth?Math.max(0,(screen?.height||0)-innerHeight):0;
       document.documentElement.style.setProperty('--viewport-gap',Math.round(gap)+'px');
       try{measure();}catch{}
     };
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
-    addEventListener('resize',mark);addEventListener('orientationchange',mark);
+    addEventListener('resize',mark);addEventListener('orientationchange',mark);addEventListener('load',mark);
+    try{visualViewport.addEventListener('resize',mark);}catch{}
 
     // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
     const origShow=g.showCard;
