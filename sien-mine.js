@@ -43,6 +43,32 @@
   // Same test upstream uses for its 15px standalone offset; exposed as a class so CSS can target the home-screen app.
   function standalone(nav,mm){return !!(nav?.standalone||mm?.('(display-mode: standalone)')?.matches);}
   function queueGrew(before,after){const had=new Set(before||[]);return (after||[]).some(id=>!had.has(id));}
+  // Anki cloze deletions: {{cN::answer}} or {{cN::answer::hint}}. Imported notes keep the markup in the front
+  // text, so it is read here at draw time only; nested clozes are not supported and stay as written.
+  const CLOZE=/\{\{c(\d+)::((?:(?!\{\{|\}\}).)*?)(?:::((?:(?!\{\{|\}\}).)*?))?\}\}/gs;
+  function clozeParts(text){
+    const t=String(text??''),parts=[];let last=0;
+    for(const m of t.matchAll(CLOZE)){if(m.index>last)parts.push({t:'text',s:t.slice(last,m.index)});parts.push({t:'cloze',n:Number(m[1]),ans:m[2],hint:m[3]});last=m.index+m[0].length;}
+    if(last<t.length)parts.push({t:'text',s:t.slice(last)});
+    return parts;
+  }
+  function clozeNumbers(text){return [...new Set(clozeParts(text).filter(p=>p.t==='cloze').map(p=>p.n))].sort((a,b)=>a-b);}
+  // Segments for one side of card number n: k is 'text', 'blank' ([...] or [hint]) or 'answer' (the revealed one).
+  function renderCloze(text,n,side){
+    return clozeParts(text).map(p=>p.t==='text'?{s:p.s,k:'text'}:p.n!==n?{s:p.ans,k:'text'}:side==='f'?{s:'['+(p.hint||'...')+']',k:'blank'}:{s:p.ans,k:'answer'});
+  }
+  function stripCloze(text){return clozeParts(text).map(p=>p.t==='text'?p.s:p.ans).join('');}
+  function clozeAnswers(text,n){return clozeParts(text).filter(p=>p.t==='cloze'&&p.n===n).map(p=>p.ans);}
+  // The number is not stored, so a card with several numbers takes its rank among sibling cards (same deck,
+  // same front text) in Anki id order, which is the order Anki created them in.
+  function clozeOrdinal(card,cards){
+    const nums=clozeNumbers(card?.front);if(!nums.length)return null;if(nums.length===1)return nums[0];
+    const deckOf=c=>c.deckId??c.subj,num=id=>{const m=/(\d+)$/.exec(String(id));return m?Number(m[1]):NaN;};
+    const sibs=(cards||[]).filter(c=>c&&c.front===card.front&&deckOf(c)===deckOf(card)).map(c=>c.id)
+      .sort((a,b)=>{const x=num(a),y=num(b);return Number.isFinite(x)&&Number.isFinite(y)?x-y:String(a).localeCompare(String(b));});
+    const i=sibs.indexOf(card.id);
+    return nums[Math.min(Math.max(i,0),nums.length-1)];
+  }
   // One line of viewport facts for the foot of the settings page, so a phone screenshot shows what iOS gave the page.
   function diag(m){
     const n=v=>Number.isFinite(v)?String(Math.round(v)):'?';
@@ -243,11 +269,42 @@
     try{visualViewport.addEventListener('resize',mark);}catch{}
 
     // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
+    // Cloze cards: the front shows the current blank, the revealed side fills it in the accent colour.
+    const allCards=()=>{try{return DATA;}catch{return [];}};
+    let cloze=null;   // {id, n, text} for the card on screen
+    function paintCloze(el,segs){
+      el.textContent='';
+      for(const seg of segs){if(seg.k==='text'){el.appendChild(document.createTextNode(seg.s));continue;}
+        const span=document.createElement('span');span.className=seg.k==='blank'?'mine-cloze-blank':'mine-cloze';span.textContent=seg.s;el.appendChild(span);}
+    }
+    function clozeBack(c){
+      if(!cloze||cloze.id!==c?.id||String(c.back||c.a||'').trim())return;
+      const el=$('cBack');if(!el||el.style.display==='none')return;
+      el.textContent=clozeAnswers(cloze.text,cloze.n).join(' · ');
+    }
     const origShow=g.showCard;
     if(typeof origShow==='function')g.showCard=function(){
       const r=origShow.apply(this,arguments);
       try{const lang=frontLang(g.cur()),el=$('cFront');if(el&&lang)el.lang=lang;}catch{}
+      try{
+        const c=g.cur(),el=$('cFront');cloze=null;
+        if(c&&c.sien?.v!==1&&el&&clozeNumbers(el.textContent).length){
+          cloze={id:c.id,n:clozeOrdinal({...c,front:el.textContent},allCards().map(x=>x===c?{...x,front:el.textContent}:x)),text:el.textContent};
+          paintCloze(el,renderCloze(cloze.text,cloze.n,'f'));
+        }
+      }catch{}
       return r;
+    };
+    const origSheet=g.renderCardSheet,origRow=g.cardRow;
+    if(typeof origSheet==='function')g.renderCardSheet=function(){
+      const r=origSheet.apply(this,arguments);
+      try{const el=document.querySelector('#csSheet .cs-front');if(el&&clozeNumbers(el.textContent).length)el.textContent=stripCloze(el.textContent);}catch{}
+      return r;
+    };
+    if(typeof origRow==='function')g.cardRow=function(c){
+      const el=origRow.apply(this,arguments);
+      try{const f=el?.querySelector?.('.cbt-front');if(f&&clozeNumbers(c?.front).length){f.textContent=stripCloze(f.textContent);f.title=f.textContent;}}catch{}
+      return el;
     };
     function cleanNote(){
       const n=$('cNote');if(!n||!n.classList.contains('on'))return;
@@ -257,8 +314,13 @@
     }
     for(const name of ['fillBack','reveal']){
       const orig=g[name];if(typeof orig!=='function')continue;
-      g[name]=function(){const r=orig.apply(this,arguments);try{cleanNote();}catch{}return r;};
+      g[name]=function(){
+        const r=orig.apply(this,arguments);
+        try{cleanNote();}catch{}
+        try{const c=g.cur();clozeBack(c);if(name==='reveal'&&cloze&&cloze.id===c?.id)paintCloze($('cFront'),renderCloze(cloze.text,cloze.n,'b'));}catch{}
+        return r;
+      };
     }
   }
-  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,wrapPlanning,install};
+  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,clozeNumbers,renderCloze,stripCloze,clozeAnswers,clozeOrdinal,wrapPlanning,install};
 });

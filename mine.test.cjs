@@ -98,3 +98,40 @@ test('diagnostic line prints every measurement, marks unknowns, and omits absent
  assert.equal(M.diag({vw:1280,vh:999.6,sw:1280,sh:1000,docH:1000,gap:NaN,saTop:NaN,saBottom:undefined,standalone:false,os:'',version:undefined}),
   '뷰포트 1280×1000 · 화면 1280×1000 · 문서 1000 · 간격 ? · 안전영역 위 ? 아래 ? · 브라우저');
 });
+test('cloze: a basic blank hides on the front and fills on the back',()=>{
+ const t='Je {{c1::suis}} là.';
+ assert.deepEqual(M.clozeNumbers(t),[1]);
+ assert.deepEqual(M.renderCloze(t,1,'f'),[{s:'Je ',k:'text'},{s:'[...]',k:'blank'},{s:' là.',k:'text'}]);
+ assert.deepEqual(M.renderCloze(t,1,'b'),[{s:'Je ',k:'text'},{s:'suis',k:'answer'},{s:' là.',k:'text'}]);
+ assert.deepEqual(M.clozeAnswers(t,1),['suis']);assert.equal(M.stripCloze(t),'Je suis là.');
+});
+test('cloze: a hint shows inside the brackets',()=>{
+ assert.deepEqual(M.renderCloze('{{c1::toi::대명사}} aussi',1,'f'),[{s:'[대명사]',k:'blank'},{s:' aussi',k:'text'}]);
+ assert.deepEqual(M.renderCloze('{{c1::toi::대명사}} aussi',1,'b'),[{s:'toi',k:'answer'},{s:' aussi',k:'text'}]);
+});
+test('cloze: c1 and c2 in one note blank only the current number, on both sides',()=>{
+ const t='{{c1::Je}} {{c2::te}} vois, {{c1::je}} sais.';
+ assert.deepEqual(M.clozeNumbers(t),[1,2]);
+ assert.equal(M.renderCloze(t,1,'f').map(s=>s.s).join(''),'[...] te vois, [...] sais.');
+ assert.equal(M.renderCloze(t,2,'f').map(s=>s.s).join(''),'Je [...] vois, je sais.');
+ assert.deepEqual(M.renderCloze(t,2,'b').filter(s=>s.k!=='text'),[{s:'te',k:'answer'}]);
+ assert.deepEqual(M.clozeAnswers(t,1),['Je','je']);
+});
+test('cloze: special characters inside the blank survive; only the first :: separates the hint',()=>{
+ assert.deepEqual(M.renderCloze("{{c1::qu'est-ce que (c'est) ? à::hint::more}}",1,'b'),[{s:"qu'est-ce que (c'est) ? à",k:'answer'}]);
+ assert.deepEqual(M.renderCloze("{{c1::qu'est-ce que (c'est) ? à::hint::more}}",1,'f'),[{s:'[hint::more]',k:'blank'}]);
+ assert.equal(M.stripCloze('{{c3::Où}} est {{c3::la gare}} ?'),'Où est la gare ?');
+});
+test('cloze: plain cards pass through untouched',()=>{
+ assert.deepEqual(M.clozeNumbers('bonjour {c1::x} {{not::cloze}}'),[]);
+ assert.deepEqual(M.renderCloze('bonjour',1,'f'),[{s:'bonjour',k:'text'}]);
+ assert.equal(M.stripCloze('bonjour'),'bonjour');assert.equal(M.clozeOrdinal({front:'bonjour'},[]),null);
+});
+test('cloze: the card number comes from the text, or from the rank among sibling cards in Anki id order',()=>{
+ assert.equal(M.clozeOrdinal({id:'anki_5',front:'{{c2::a}}',deckId:'d'},[]),2);
+ const front='{{c1::Je}} {{c2::te}} {{c3::vois}}';
+ const cards=[{id:'anki_1700000000002',front,deckId:'d'},{id:'anki_1700000000001',front,deckId:'d'},{id:'anki_1700000000003',front,deckId:'d'},{id:'anki_9',front,deckId:'other'},{id:'anki_8',front:'x',deckId:'d'}];
+ assert.equal(M.clozeOrdinal(cards[1],cards),1);assert.equal(M.clozeOrdinal(cards[0],cards),2);assert.equal(M.clozeOrdinal(cards[2],cards),3);
+ assert.equal(M.clozeOrdinal(cards[3],cards),1,'a lone sibling in another deck is its first number');
+ assert.equal(M.clozeOrdinal({id:'anki_1700000000009',front,deckId:'d'},cards),1,'a card missing from the list falls back to its first number');
+});

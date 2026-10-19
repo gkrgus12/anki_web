@@ -231,3 +231,6 @@
 /* Viewport facts at the foot of the settings sheet; hidden until the 설정 heading is tapped five times. */
 .mine-diag{display:none;margin-top:16px;font-size:12px;line-height:16px;color:var(--c-sec);text-align:center;word-break:keep-all;-webkit-user-select:all;user-select:all}
 .mine-diag.on{display:block}
+/* Anki cloze: the blank on the question side and the filled answer after reveal, in the accent colour. */
+.mine-cloze{color:var(--c-acc);font-weight:700}
+.mine-cloze-blank{color:var(--c-acc);font-weight:600}
