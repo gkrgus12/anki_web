@@ -181,6 +181,16 @@
 
     // Theme segment: "기기 설정" cannot fit a 60px cell on one line; the shorter label keeps the same data-th and tooltip.
     const auto=document.querySelector('#themeSeg [data-th="auto"]');if(auto&&auto.textContent.trim()==='기기 설정')auto.textContent='자동';
+    // Phone tab bar: upstream keeps it inside the home screen, so it vanished on 탐색/통계. Moving it to #main
+    // keeps every handler (same elements) and lets CSS show it on the sub screens; the active tab follows go().
+    const tabBar=$('tabBar'),main=$('main');
+    if(tabBar&&main&&!main.contains(tabBar)===false&&tabBar.parentElement!==main)main.append(tabBar);
+    const origGo=g.go;
+    if(typeof origGo==='function'&&tabBar)g.go=function(id){
+      const r=origGo.apply(this,arguments);
+      try{for(const [tab,screen]of [['tabToday','scrHome'],['tabCards','scrList'],['tabStats','scrStats']])$(tab)?.classList.toggle('on',id===screen);$('tabSetup')?.classList.remove('on');}catch{}
+      return r;
+    };
     const mark=()=>document.documentElement.classList.toggle('sien-standalone',standalone(navigator,q=>matchMedia(q)));
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
 

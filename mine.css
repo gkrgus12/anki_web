@@ -168,3 +168,16 @@
   body #scrSolve{padding-left:12px;padding-right:12px}
   body #gradeBar,body #gradeBar.on{gap:6px}
 }
+
+/* ── Phones: no sideways panning, and the tab bar stays on the sub screens (card browser, stats, study). ── */
+@media (max-width:759px){
+  html,body{overflow-x:hidden}
+  body #main,body .scr,body .sub-body,body .sub-inner{min-width:0;max-width:100%}
+  body .sub-body{overflow-x:hidden}
+  /* A select is as wide as its longest option unless told otherwise; that is what pushed the card browser past the edge. */
+  body .sub-inner select{min-width:0;width:0;flex:1 1 0}
+  body .sub-inner > div{min-width:0}
+  /* The tab bar lives in #main now (moved by sien-mine.js), so it shows on every screen except study. */
+  body #main:has(#scrSolve.on) #tabBar{display:none}
+  body .sub-body{padding-bottom:calc(62px + 24px + var(--sa-bottom))}
+}
