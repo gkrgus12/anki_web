@@ -234,3 +234,18 @@
 /* Anki cloze: the blank on the question side and the filled answer after reveal, in the accent colour. */
 .mine-cloze{color:var(--c-acc);font-weight:700}
 .mine-cloze-blank{color:var(--c-acc);font-weight:600}
+/* Card browser bulk selection: shortcut row under the search box; on phones the bulk bar docks to the
+   screen bottom while selecting and the tab bar steps aside. */
+.mine-quick{margin-top:-2px}
+@media (max-width:759px){
+  body .mine-quick,body #listTools{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  body .mine-quick::-webkit-scrollbar,body #listTools::-webkit-scrollbar{display:none}
+  body .mine-quick button,body #listTools button,body #bulkBar button{flex:0 0 auto;white-space:nowrap}
+  body .cbt-row{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  body:has(#listBody.picking) #tabBar{display:none}
+  body:has(#listBody.picking) #scrList .sub-body{padding-bottom:calc(72px + var(--sa-bottom))}
+  body #bulkBar.on{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;border-radius:16px 16px 0 0;flex-wrap:nowrap;overflow-x:auto;
+    padding:10px var(--sp-m) calc(10px + var(--sa-bottom));box-shadow:0 -6px 18px var(--c-glass-shadow)}
+  body #bulkBar.on .n{flex:0 0 auto;white-space:nowrap}
+  body #bulkBar.on [data-bulk="retire"]{margin-left:0}
+}

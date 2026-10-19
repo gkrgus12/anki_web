@@ -59,6 +59,11 @@
   }
   function stripCloze(text){return clozeParts(text).map(p=>p.t==='text'?p.s:p.ans).join('');}
   function clozeAnswers(text,n){return clozeParts(text).filter(p=>p.t==='cloze'&&p.n===n).map(p=>p.ans);}
+  // Card browser bulk selection: ids in result order, a Shift+click range, the inverse, and the targets of the
+  // "all results" shortcuts (retire only cards still on, restore only cards that are off).
+  function rangeIds(ids,fromId,toId){const a=ids.indexOf(fromId),b=ids.indexOf(toId);if(b<0)return [];if(a<0)return [toId];const [lo,hi]=a<b?[a,b]:[b,a];return ids.slice(lo,hi+1);}
+  function invertIds(ids,picked){return ids.filter(id=>!picked.has(id));}
+  function quickTargets(rows,kind,isOff){return (rows||[]).filter(c=>kind==='retire'?!isOff(c):isOff(c));}
   // The number is not stored, so a card with several numbers takes its rank among sibling cards (same deck,
   // same front text) in Anki id order, which is the order Anki created them in.
   function clozeOrdinal(card,cards){
@@ -268,6 +273,66 @@
     addEventListener('resize',mark);addEventListener('orientationchange',mark);addEventListener('load',mark);
     try{visualViewport.addEventListener('resize',mark);}catch{}
 
+    // ── Card browser: select every search result, Shift ranges, invert, long-press on phones, quick off/restore. ──
+    const listBody=$('listBody'),bulkBar=$('bulkBar'),search=$('qSearch');
+    if(listBody&&bulkBar&&search&&$('btnPick')&&typeof g.bulkDo==='function'&&typeof g.syncBulk==='function'){
+      const rows=()=>{try{return listRows||[];}catch{return [];}};
+      const sel=()=>{try{return picked;}catch{return new Set();}};
+      const pickingOn=v=>{try{if(v!==undefined)picking=v;return picking;}catch{return false;}};
+      const markRows=()=>{const s=sel();for(const el of listBody.querySelectorAll('.cbt-row'))el.classList.toggle('sel',s.has(el.dataset.id));};
+      const count=()=>{const s=sel();let n=0;for(const c of rows())if(s.has(c.id))n++;return n;};
+      const btn=(id,label)=>{const b=document.createElement('button');b.type='button';b.id=id;b.textContent=label;return b;};
+      const origSync=g.syncBulk;
+      g.syncBulk=function(){const r=origSync.apply(this,arguments);try{$('bulkN').textContent=count().toLocaleString()+'장 선택됨';}catch{}return r;};
+      const selectAll=()=>{const s=sel();for(const c of rows())s.add(c.id);pickingOn(true);markRows();g.syncBulk();};
+      const invert=()=>{const s=sel(),next=invertIds(rows().map(c=>c.id),s);s.clear();for(const id of next)s.add(id);pickingOn(true);markRows();g.syncBulk();};
+      const all=btn('mineSelectAll','결과 전체 선택');all.onclick=selectAll;$('btnPick').after(all);
+      const bAll=btn('mineBulkAll','전체 선택'),bInv=btn('mineBulkInvert','반전');bAll.onclick=selectAll;bInv.onclick=invert;
+      const none=bulkBar.querySelector('[data-bulk="none"]');if(none)none.before(bAll,bInv);else bulkBar.append(bAll,bInv);
+      // Shortcuts under the search box: act on the whole result through the ordinary bulk path (and its confirm).
+      const quick=document.createElement('div');quick.className='list-tools mine-quick';
+      const qOff=btn('mineQuickOff','결과 모두 끄기'),qOn=btn('mineQuickOn','결과 모두 복원');quick.append(qOff,qOn);
+      (search.closest('.search-row')||search).after(quick);
+      const quickDo=kind=>{
+        const isOff=c=>{try{return !!g.retired(c);}catch{return false;}};
+        const targets=quickTargets(rows(),kind,isOff);
+        if(!targets.length){g.toast?.(kind==='retire'?'끌 카드가 없어요':'복원할 카드가 없어요');return;}
+        const s=sel();s.clear();for(const c of targets)s.add(c.id);pickingOn(true);markRows();g.syncBulk();
+        let ask=20;try{ask=BULK_ASK;}catch{}
+        if(kind==='restore'&&targets.length>=ask&&typeof g.askConfirm==='function')g.askConfirm('한꺼번에 다시 켜기',`${targets.length}장을 다시 켭니다.`,'다시 켜기',()=>g.bulkDo('restore'));
+        else g.bulkDo(kind);   // retire asks upstream from BULK_ASK cards
+      };
+      qOff.onclick=()=>quickDo('retire');qOn.onclick=()=>quickDo('restore');
+      // A new search starts with nothing selected (upstream's own input listener re-renders first).
+      search.addEventListener('input',()=>{sel().clear();markRows();g.syncBulk();});
+      // Shift+click selects the range from the last clicked row; a long press on a phone starts selecting.
+      let last=null,swallow=false,timer=0,start=null;
+      listBody.addEventListener('click',e=>{
+        if(swallow){swallow=false;e.stopImmediatePropagation();e.preventDefault();return;}
+        const row=e.target.closest?.('.cbt-row');if(!row||!pickingOn()||e.target.closest('.cbt-btn'))return;
+        const id=row.dataset.id;
+        if(e.shiftKey&&last){const s=sel();for(const x of rangeIds(rows().map(c=>c.id),last,id))s.add(x);markRows();g.syncBulk();e.stopImmediatePropagation();e.preventDefault();return;}
+        last=id;
+      },true);
+      const cancel=()=>{if(timer){clearTimeout(timer);timer=0;}};
+      listBody.addEventListener('pointerdown',e=>{
+        swallow=false;cancel();if(e.pointerType==='mouse'||pickingOn())return;
+        const row=e.target.closest?.('.cbt-row');if(!row||e.target.closest('.cbt-btn'))return;
+        start={x:e.clientX,y:e.clientY};
+        timer=setTimeout(()=>{timer=0;swallow=true;pickingOn(true);sel().add(row.dataset.id);last=row.dataset.id;markRows();g.syncBulk();try{navigator.vibrate?.(10);}catch{}},500);
+      });
+      listBody.addEventListener('pointermove',e=>{if(timer&&start&&Math.hypot(e.clientX-start.x,e.clientY-start.y)>10)cancel();});
+      listBody.addEventListener('pointerup',cancel);listBody.addEventListener('pointercancel',cancel);
+      listBody.addEventListener('contextmenu',e=>{if(timer||pickingOn())e.preventDefault();});
+      // Ctrl/Cmd+A on the browser screen selects every result; inside a text field the browser keeps its own select-all.
+      document.addEventListener('keydown',e=>{
+        if(!(e.ctrlKey||e.metaKey)||e.code!=='KeyA'||e.altKey||e.shiftKey)return;
+        if(!$('scrList')?.classList.contains('on')||document.querySelector('.ovl.show'))return;
+        const t=e.target;if(t&&(t.matches?.('input,textarea,select')||t.isContentEditable))return;
+        e.preventDefault();e.stopImmediatePropagation();selectAll();
+      },true);
+    }
+
     // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
     // Cloze cards: the front shows the current blank, the revealed side fills it in the accent colour.
     const allCards=()=>{try{return DATA;}catch{return [];}};
@@ -322,5 +387,5 @@
       };
     }
   }
-  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,clozeNumbers,renderCloze,stripCloze,clozeAnswers,clozeOrdinal,wrapPlanning,install};
+  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,clozeNumbers,renderCloze,stripCloze,clozeAnswers,clozeOrdinal,rangeIds,invertIds,quickTargets,wrapPlanning,install};
 });

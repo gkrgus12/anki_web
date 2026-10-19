@@ -135,3 +135,20 @@ test('cloze: the card number comes from the text, or from the rank among sibling
  assert.equal(M.clozeOrdinal(cards[3],cards),1,'a lone sibling in another deck is its first number');
  assert.equal(M.clozeOrdinal({id:'anki_1700000000009',front,deckId:'d'},cards),1,'a card missing from the list falls back to its first number');
 });
+test('bulk selection: Shift range follows result order either way, invert flips, unknown anchors degrade',()=>{
+ const ids=['a','b','c','d','e'];
+ assert.deepEqual(M.rangeIds(ids,'b','d'),['b','c','d']);assert.deepEqual(M.rangeIds(ids,'d','b'),['b','c','d']);
+ assert.deepEqual(M.rangeIds(ids,'c','c'),['c']);assert.deepEqual(M.rangeIds(ids,'zz','d'),['d']);assert.deepEqual(M.rangeIds(ids,'b','zz'),[]);
+ assert.deepEqual(M.invertIds(ids,new Set(['a','c'])),['b','d','e']);assert.deepEqual(M.invertIds([],new Set(['a'])),[]);
+ assert.deepEqual(M.invertIds(ids,new Set(ids)),[]);
+});
+test('quick off/restore targets: none, one, hundreds, and a result where some cards are already off',()=>{
+ const off=new Set(['c2','c5']),isOff=c=>off.has(c.id);
+ assert.deepEqual(M.quickTargets([],'retire',isOff),[]);assert.deepEqual(M.quickTargets([],'restore',isOff),[]);
+ assert.deepEqual(M.quickTargets([{id:'c1'}],'retire',isOff).map(c=>c.id),['c1']);assert.deepEqual(M.quickTargets([{id:'c1'}],'restore',isOff),[]);
+ const many=Array.from({length:312},(_,i)=>({id:'m'+i}));
+ assert.equal(M.quickTargets(many,'retire',isOff).length,312);assert.equal(M.quickTargets(many,'restore',isOff).length,0);
+ const mixed=['c1','c2','c3','c4','c5'].map(id=>({id}));
+ assert.deepEqual(M.quickTargets(mixed,'retire',isOff).map(c=>c.id),['c1','c3','c4']);
+ assert.deepEqual(M.quickTargets(mixed,'restore',isOff).map(c=>c.id),['c2','c5']);
+});
