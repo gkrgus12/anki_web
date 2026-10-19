@@ -1,27 +1,18 @@
-/* Personal styles: inline deck limit line and panel (sien-mine.js). Uses upstream tokens only. */
-.mine-limit-line{display:block;width:100%;margin:3px 0 0;padding:6px 0;border:0;background:transparent;text-align:left;font:inherit;font-size:11.5px;line-height:1.35;color:var(--c-sec);cursor:pointer;min-height:24px;overflow-wrap:anywhere}
-.mine-limit-line::before{content:'';display:inline-block;width:5px;height:5px;margin:0 7px 2px 1px;border:solid var(--c-ter);border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);transition:transform .12s}
-.mine-limit-line[aria-expanded="true"]::before{transform:rotate(45deg)}
-.mine-limit-line:hover,.mine-limit-line:focus-visible{color:var(--c-label);outline:none}
-.deck-tree-row.mine-open{background:var(--c-fill-hi,rgba(120,120,128,.07))}
-.mine-limit-panel{padding:10px 16px 12px 44px;background:var(--c-card);border-top:1px solid var(--c-sep-sub,rgba(0,0,0,.05));border-bottom:1px solid var(--c-sep-sub,rgba(0,0,0,.05))}
-.mine-limit-grid{display:grid;grid-template-columns:auto 1fr 1fr;gap:8px 12px;align-items:center}
-.mine-lbl{font-size:12px;font-weight:700;color:var(--c-label);white-space:nowrap}
-.mine-step{display:flex;align-items:center;gap:4px;min-width:0}
-.mine-step-name{font-size:11.5px;color:var(--c-sec);width:28px;flex-shrink:0}
-.mine-step input{width:100%;min-width:0;max-width:92px;height:34px;padding:0 6px;border:1px solid var(--c-sep);border-radius:9px;background:var(--c-fill);color:var(--c-label);font:inherit;font-size:16px;font-variant-numeric:tabular-nums;text-align:center;-moz-appearance:textfield}
+/* Personal styles. Uses upstream tokens only. */
+/* "오늘만 추가" block inside the deck options modal (sien-mine.js). */
+.mine-boost-head{display:block;font-size:13px;font-weight:700;color:var(--c-label);margin-bottom:6px}
+.mine-boost-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:8px 10px;align-items:center}
+.mine-step{display:flex;align-items:center;gap:6px;min-width:0}
+.mine-step-name{font-size:12px;color:var(--c-sec);flex-shrink:0}
+.mine-step input{width:100%;min-width:0;height:36px;padding:0 8px;border:1px solid var(--c-sep);border-radius:9px;background:var(--c-fill);color:var(--c-label);font:inherit;font-size:16px;font-variant-numeric:tabular-nums;text-align:center;-moz-appearance:textfield}
 .mine-step input::-webkit-outer-spin-button,.mine-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.mine-step-btn{width:36px;height:36px;flex-shrink:0;border:0;border-radius:9px;background:var(--c-fill);color:var(--c-label);font-size:18px;line-height:1;cursor:pointer}
-.mine-step-btn:active{background:var(--c-sep)}
-.mine-limit-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11.5px;color:var(--c-ter);line-height:1.4}
-.mine-limit-foot .btn-ghost{flex-shrink:0;min-height:32px;padding:0 10px;font-size:12px}
-.mine-limit-foot .btn-ghost[disabled]{opacity:.45;cursor:default}
-@media(max-width:600px){
-  .mine-limit-panel{padding:10px 10px 12px 10px}
-  .mine-limit-grid{grid-template-columns:1fr 1fr}
-  .mine-lbl{grid-column:1/-1;margin-top:2px}
-  .mine-step input{max-width:none}
-  .mine-limit-foot{flex-direction:column;align-items:flex-start}
+.mine-boost-clear{min-height:36px;padding:0 12px;font-size:12.5px;white-space:nowrap}
+.mine-boost-clear[disabled]{opacity:.45;cursor:default}
+.mine-boost-note{margin-top:6px;font-size:11.5px;color:var(--c-ter);line-height:1.4}
+@media (max-width:420px){.mine-boost-grid{grid-template-columns:1fr 1fr}.mine-boost-clear{grid-column:1/-1}}
+/* PC: keep the scrollbar's column reserved so expanding a deck does not shift the content sideways. */
+@media (hover:hover) and (pointer:fine){
+  body #scrHome .home-wrap,body .sub-body{scrollbar-gutter:stable}
 }
 
 /* ── Phone layout (iPhone Safari/Chrome, standalone included). Desktop and iPad rules are untouched. ── */
@@ -49,9 +40,6 @@
   body #gradeBar .gbtn,body #revealBtn{min-height:58px}
   /* iOS zooms into inputs under 16px; upstream sets several inline, hence !important. */
   input,select,textarea{font-size:16px !important}
-  .mine-step input{height:40px}
-  .mine-step-btn{width:40px;height:40px}
-  .mine-limit-line{min-height:32px;padding:6px 0}
   /* 44px touch targets. Card action buttons keep a 34px look with an invisible 44px hit area. */
   body .c-copy-btn,body .c-copy-tag{position:relative;width:34px;height:34px}
   body .c-copy-btn::before,body .c-copy-tag::before{content:'';position:absolute;inset:-5px}
@@ -165,7 +153,6 @@
   body .cbt-btn{height:auto;min-height:var(--btn-min-h-sm);padding:.4em .9em;border-radius:999px;white-space:nowrap}
   body .cbt-btn.btn-del{width:var(--btn-min-h-sm);padding:0;justify-content:center}
   body #railClose{width:44px;height:44px;font-size:22px;display:inline-flex;align-items:center;justify-content:center}
-  .mine-limit-foot .btn-ghost{min-height:var(--btn-min-h-sm);padding:.5em .9em}
   /* Card meta row: the edit control becomes a pill, display chips match the button chips. */
   body #cMeta .typ-tag{line-height:36px}
   body #btnEditBack.c-copy-tag{width:auto;min-width:36px;height:36px;padding:0 .8em !important;border-radius:999px !important;gap:4px}
@@ -201,14 +188,13 @@
   @media (max-width:759px){
     html:root{--ios-nudge:1px;--n2:calc(var(--ios-nudge) * 2)}
     /* no vertical padding upstream: fixed/min height with flex centring */
-    body .tab,body #gradeBar .gbtn,body #revealBtn,body .hero-go,body .ft-chip,body .hint-chip,body .tb-btn,body .gear,body .mine-step-btn,body .deck-btn-opt,body .c-copy-btn,body .c-copy-tag{padding-top:0;padding-bottom:var(--n2)}
+    body .tab,body #gradeBar .gbtn,body #revealBtn,body .hero-go,body .ft-chip,body .hint-chip,body .tb-btn,body .gear,body .deck-btn-opt,body .c-copy-btn,body .c-copy-tag{padding-top:0;padding-bottom:var(--n2)}
     /* min-height 44 buttons: any symmetric pair works, so 6px ± nudge */
     body .deck-act-btn,body .deck-btn-study,body #listTools button,body #ovlDeckOptions .btn-ghost,body #ovlDeckOptions .btn-primary,body #ovlSettings .h-tools .h-tool,body #ovlSettings .btn-ghost,body #studyBody .btn-ghost{min-height:44px;padding-top:calc(6px - var(--ios-nudge)) !important;padding-bottom:calc(6px + var(--ios-nudge)) !important}
     body #themeSeg button,body .seg button{padding-top:calc(.625em - var(--ios-nudge));padding-bottom:calc(.625em + var(--ios-nudge))}
     body #filterChipsRow .filter-chip{padding-top:calc(.45em - var(--ios-nudge)) !important;padding-bottom:calc(.45em + var(--ios-nudge)) !important}
     body .sheet .ac-badge,body .sub-head .ac-badge{padding-top:calc(.25em - var(--ios-nudge));padding-bottom:calc(.25em + var(--ios-nudge))}
     body .cbt-btn{padding-top:calc(.4em - var(--ios-nudge));padding-bottom:calc(.4em + var(--ios-nudge))}
-    body .mine-limit-foot .btn-ghost{padding-top:calc(.5em - var(--ios-nudge));padding-bottom:calc(.5em + var(--ios-nudge))}
     body .act-btn{padding-top:calc(10px - var(--ios-nudge));padding-bottom:calc(10px + var(--ios-nudge))}
     body .account-btn{padding-top:calc(6px - var(--ios-nudge));padding-bottom:calc(6px + var(--ios-nudge))}
     /* line-height-centred chips: keep the height, move the baseline up */

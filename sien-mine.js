@@ -1,9 +1,9 @@
-/* Personal additions on top of the shared fork: inline daily limits per deck and
-   today-only boosts. Loads last. Upstream files are wrapped, never edited.
+/* Personal additions on top of the shared fork: today-only limit boosts in the deck options,
+   phone layout hooks, cloze cards, bulk selection. Loads last. Upstream files are wrapped, never edited.
    Pure helpers are exported for Node tests; install() wires the browser. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else{root.SienMine=api;if(typeof document!=='undefined')api.install(root);}})(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
-  const MAX={newLimit:9999,reviewLimit:99999},STEP={newLimit:5,reviewLimit:50},BOOST='deckBoost',OPEN_KEY='sien-mine-open-decks-v1';
+  const MAX={newLimit:9999,reviewLimit:99999},STEP={newLimit:5,reviewLimit:50},BOOST='deckBoost';
   const key=(...parts)=>JSON.stringify(parts),copy=x=>JSON.parse(JSON.stringify(x));
   const leaf=name=>String(name||'').split('::').pop();
 
@@ -122,16 +122,6 @@
       return r;
     };
 
-    let open=new Set();
-    try{open=new Set(JSON.parse(localStorage.getItem(OPEN_KEY)||'[]'));}catch{}
-    const rememberOpen=()=>{try{localStorage.setItem(OPEN_KEY,JSON.stringify([...open]));}catch{}};
-
-    function setBase(deck,field,value){
-      const base=planning.base(deck),next=clampLimit(value,base[field],MAX[field]);
-      if(next===base[field])return false;
-      deck.opts={newLimit:base.newLimit,reviewLimit:base.reviewLimit,retention:base.retention,[field]:next};
-      g.saveUserDecks();refresh();return true;
-    }
     function setBoost(deck,field,value){
       const current=todayBoost(deck.id)||{day:today(),new:0,review:0},name=field==='newLimit'?'new':'review';
       const next=clampLimit(value,current[name],MAX[field]);
@@ -158,63 +148,33 @@
       return r;
     };
 
-    function stepper(kind,field,label,value){
-      return `<label class="mine-step" data-kind="${kind}" data-field="${field}"><span class="mine-step-name">${label}</span>`+
-        `<button type="button" class="mine-step-btn" data-d="-1" aria-label="${label} ${kind==='boost'?'오늘만 추가':'기본 한도'} 줄이기">−</button>`+
-        `<input type="number" inputmode="numeric" min="0" max="${MAX[field]}" step="1" value="${value}" aria-label="${label} ${kind==='boost'?'오늘만 추가':'기본 한도'}">`+
-        `<button type="button" class="mine-step-btn" data-d="1" aria-label="${label} ${kind==='boost'?'오늘만 추가':'기본 한도'} 늘리기">+</button></label>`;
-    }
-    function buildPanel(deck,stats){
-      const base=planning.base(deck),boost=todayBoost(deck.id)||{new:0,review:0};
-      const panel=document.createElement('div');panel.className='mine-limit-panel';panel.dataset.deckId=deck.id;
-      panel.innerHTML=`<div class="mine-limit-grid">
-        <span class="mine-lbl">기본 한도</span>${stepper('base','newLimit','신규',base.newLimit)}${stepper('base','reviewLimit','복습',base.reviewLimit)}
-        <span class="mine-lbl">오늘만 추가</span>${stepper('boost','newLimit','신규',boost.new)}${stepper('boost','reviewLimit','복습',boost.review)}
-      </div>
-      <div class="mine-limit-foot"><span>오늘 푼 신규 ${stats.studiedNew}장 · 복습 ${stats.studiedReview}장 · 오늘만 추가는 04:00에 사라져요</span>
-        <button type="button" class="btn-ghost mine-boost-clear"${boost.new||boost.review?'':' disabled'}>오늘만 취소</button></div>`;
-      panel.addEventListener('click',e=>{
-        e.stopPropagation();
-        if(e.target.closest('.mine-boost-clear')){clearBoost(deck);return;}
-        const btn=e.target.closest('.mine-step-btn');if(!btn)return;
-        const step=btn.closest('.mine-step'),input=step.querySelector('input'),field=step.dataset.field;
-        const current=clampLimit(input.value,0,MAX[field]),next=current+Number(btn.dataset.d)*STEP[field];
-        (step.dataset.kind==='boost'?setBoost:setBase)(deck,field,Math.max(0,next));
-      });
-      panel.addEventListener('change',e=>{
-        // Chrome re-fires change when a dirty input is detached by a rebuild; that one is stale.
-        const input=e.target.closest('input');if(!input||!input.isConnected||rebuilding)return;
-        const step=input.closest('.mine-step');
-        if(!(step.dataset.kind==='boost'?setBoost:setBase)(deck,step.dataset.field,input.value))decorate(true);
-      });
-      panel.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('input')){e.preventDefault();e.target.blur();}e.stopPropagation();});
-      return panel;
-    }
-    let rebuilding=false;
-    function decorate(force){
-      const area=$('deckListArea');if(!area||rebuilding)return;
-      rebuilding=true;try{paint(area,force);}finally{rebuilding=false;}
-    }
-    function paint(area,force){
-      const byName=new Map(DECKS.filter(d=>d&&d.name).map(d=>[d.name,d]));
-      for(const row of area.querySelectorAll('.deck-tree-row')){
-        const deck=byName.get(row.dataset.deckName);if(!deck)continue;
-        const info=row.querySelector('.deck-info');if(!info)continue;
-        if(force){row.querySelector('.mine-limit-line')?.remove();const old=row.nextElementSibling;if(old?.matches?.('.mine-limit-panel'))old.remove();}
-        if(row.querySelector('.mine-limit-line'))continue;
-        const stats=g.getDeckStats(deck,true),isOpen=open.has(deck.id);
-        const line=document.createElement('button');line.type='button';line.className='mine-limit-line';
-        line.textContent=summary(stats.opts,deck,defaults());
-        line.title='한도 조절 열기/닫기';line.setAttribute('aria-expanded',String(isOpen));
-        line.onclick=e=>{e.stopPropagation();if(open.has(deck.id))open.delete(deck.id);else open.add(deck.id);rememberOpen();decorate(true);};
-        info.append(line);
-        row.classList.toggle('mine-open',isOpen);
-        if(isOpen)row.after(buildPanel(deck,stats));
-      }
-    }
-    const origHub=g.renderDeckHub;
-    g.renderDeckHub=function(){const r=origHub.apply(this,arguments);try{decorate();}catch(e){console.warn('[mine] 한도 패널을 그리지 못했습니다.',e);}return r;};
-    if($('deckListArea')?.querySelector('.deck-tree-row'))try{decorate();}catch{}
+    // ── Deck options modal: upstream's limits stay as they are; a "today only" block is added below them,
+    //    and save/reset also redraw the home (upstream redraws only the deck list, so the tiles lagged). ──
+    const origOptions=g.openDeckOptionsModal;
+    if(typeof origOptions==='function')g.openDeckOptionsModal=function(deck){
+      const r=origOptions.apply(this,arguments);
+      try{
+        const sheet=$('ovlDeckOptions')?.querySelector('.sheet');if(!sheet||!deck)return r;
+        for(const id of ['btnSaveDeckOpt','btnResetDeckOpt']){const b=$(id),o=b?.onclick;if(b&&o)b.onclick=function(){const x=o.apply(this,arguments);try{refresh();}catch{}return x;};}
+        let box=sheet.querySelector('.mine-boost');
+        if(!box){box=document.createElement('div');box.className='field mine-boost';let row=$('btnSaveDeckOpt');while(row&&row.parentElement!==sheet)row=row.parentElement;row?row.before(box):sheet.append(box);}
+        const paintBoost=()=>{
+          const boost=todayBoost(deck.id)||{new:0,review:0},stats=g.getDeckStats(deck,true);
+          box.innerHTML=`<label class="mine-boost-head">오늘만 추가</label>
+            <div class="mine-boost-grid">
+              <label class="mine-step"><span class="mine-step-name">신규</span><input type="number" inputmode="numeric" min="0" max="${MAX.newLimit}" step="1" value="${boost.new}" data-field="newLimit" aria-label="오늘만 추가 신규"></label>
+              <label class="mine-step"><span class="mine-step-name">복습</span><input type="number" inputmode="numeric" min="0" max="${MAX.reviewLimit}" step="1" value="${boost.review}" data-field="reviewLimit" aria-label="오늘만 추가 복습"></label>
+              <button type="button" class="btn-ghost mine-boost-clear"${boost.new||boost.review?'':' disabled'}>오늘만 취소</button>
+            </div>
+            <div class="mine-boost-note">오늘 적용: ${summary(stats.opts,deck,defaults())}. 추가분은 04:00에 사라지고 다른 기기에도 함께 적용돼요.</div>`;
+        };
+        paintBoost();
+        box.onchange=e=>{const input=e.target.closest('input[data-field]');if(!input)return;setBoost(deck,input.dataset.field,input.value);paintBoost();};
+        box.onclick=e=>{if(e.target.closest('.mine-boost-clear')){clearBoost(deck);paintBoost();}};
+        box.onkeydown=e=>{if(e.key==='Enter'&&e.target.matches('input')){e.preventDefault();e.target.blur();}};
+      }catch(e){console.warn('[mine] 오늘만 추가 칸을 그리지 못했습니다.',e);}
+      return r;
+    };
     g.SienMine.boosts=()=>new Map(boosts);
 
     // Theme segment: "기기 설정" cannot fit a 60px cell on one line; the shorter label keeps the same data-th and tooltip.
