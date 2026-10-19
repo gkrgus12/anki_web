@@ -179,6 +179,8 @@
     if($('deckListArea')?.querySelector('.deck-tree-row'))try{decorate();}catch{}
     g.SienMine.boosts=()=>new Map(boosts);
 
+    // Theme segment: "기기 설정" cannot fit a 60px cell on one line; the shorter label keeps the same data-th and tooltip.
+    const auto=document.querySelector('#themeSeg [data-th="auto"]');if(auto&&auto.textContent.trim()==='기기 설정')auto.textContent='자동';
     const mark=()=>document.documentElement.classList.toggle('sien-standalone',standalone(navigator,q=>matchMedia(q)));
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
 

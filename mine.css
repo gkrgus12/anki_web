@@ -1,5 +1,5 @@
 /* Personal styles: inline deck limit line and panel (sien-mine.js). Uses upstream tokens only. */
-.mine-limit-line{display:block;width:100%;margin:3px 0 0;padding:4px 0;border:0;background:transparent;text-align:left;font:inherit;font-size:11.5px;line-height:1.35;color:var(--c-sec);cursor:pointer;min-height:24px;overflow-wrap:anywhere}
+.mine-limit-line{display:block;width:100%;margin:3px 0 0;padding:6px 0;border:0;background:transparent;text-align:left;font:inherit;font-size:11.5px;line-height:1.35;color:var(--c-sec);cursor:pointer;min-height:24px;overflow-wrap:anywhere}
 .mine-limit-line::before{content:'';display:inline-block;width:5px;height:5px;margin:0 7px 2px 1px;border:solid var(--c-ter);border-width:0 1.5px 1.5px 0;transform:rotate(-45deg);transition:transform .12s}
 .mine-limit-line[aria-expanded="true"]::before{transform:rotate(45deg)}
 .mine-limit-line:hover,.mine-limit-line:focus-visible{color:var(--c-label);outline:none}
@@ -11,7 +11,7 @@
 .mine-step-name{font-size:11.5px;color:var(--c-sec);width:28px;flex-shrink:0}
 .mine-step input{width:100%;min-width:0;max-width:92px;height:34px;padding:0 6px;border:1px solid var(--c-sep);border-radius:9px;background:var(--c-fill);color:var(--c-label);font:inherit;font-size:16px;font-variant-numeric:tabular-nums;text-align:center;-moz-appearance:textfield}
 .mine-step input::-webkit-outer-spin-button,.mine-step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.mine-step-btn{width:34px;height:34px;flex-shrink:0;border:0;border-radius:9px;background:var(--c-fill);color:var(--c-label);font-size:18px;line-height:1;cursor:pointer}
+.mine-step-btn{width:36px;height:36px;flex-shrink:0;border:0;border-radius:9px;background:var(--c-fill);color:var(--c-label);font-size:18px;line-height:1;cursor:pointer}
 .mine-step-btn:active{background:var(--c-sep)}
 .mine-limit-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11.5px;color:var(--c-ter);line-height:1.4}
 .mine-limit-foot .btn-ghost{flex-shrink:0;min-height:32px;padding:0 10px;font-size:12px}
@@ -118,4 +118,39 @@
   html.sien-standalone #tabBar{bottom:env(safe-area-inset-bottom)}
   /* Study: card and grade buttons start right at the safe areas. */
   html.sien-standalone #scrSolve{padding-top:4px;padding-bottom:0}
+}
+
+/* ── Buttons on phones: em padding, min-height instead of height, centered one-line labels (2026-10-19 audit). ── */
+@media (max-width:759px){
+  html:root{--btn-pad-y:.625em;--btn-pad-x:1em;--btn-min-h:44px;--btn-min-h-sm:36px;--btn-gap:8px}
+  /* Theme segment and other segmented controls: one line per cell, type shrinks before it wraps. */
+  body #themeSeg button,body .seg button{display:flex;align-items:center;justify-content:center;min-height:var(--btn-min-h);padding:var(--btn-pad-y) .5em;white-space:nowrap;font-size:clamp(13px,3.6vw,15px)}
+  /* Card browser filter chips: fixed-size chips in a row that already scrolls sideways. */
+  body #filterChipsRow .filter-chip{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:var(--btn-min-h-sm);padding:.45em .9em !important;white-space:nowrap;font-size:clamp(12px,3.3vw,12.5px) !important}
+  /* Settings save/export tools: four buttons do not fit one line at 375px, so a 2×2 grid with equal cells. */
+  body #ovlSettings .h-tools{display:grid;grid-template-columns:1fr 1fr;gap:var(--btn-gap)}
+  body #ovlSettings .h-tools .h-tool{display:flex;align-items:center;justify-content:center;min-height:var(--btn-min-h);padding:var(--btn-pad-y) var(--btn-pad-x);font-size:14px;white-space:nowrap}
+  /* Grade buttons: the interval line shrinks a little instead of touching the edges. */
+  body #gradeBar .gbtn{padding:0 .3em}
+  body #gradeBar .gbtn .gi{white-space:nowrap;letter-spacing:-.035em}   /* upstream sets 13px via #gradeBar .gi; the size stays, only wrapping and tracking change */
+  /* Deck options modal: real buttons instead of bare text. */
+  body #ovlDeckOptions .btn-ghost,body #ovlDeckOptions .btn-primary{display:inline-flex;align-items:center;justify-content:center;min-height:var(--btn-min-h);padding:var(--btn-pad-y) var(--btn-pad-x);border-radius:999px;white-space:nowrap;font-size:14px !important}
+  body #ovlDeckOptions .btn-ghost{border:1.5px solid var(--c-sep)}
+  /* Small secondary buttons. */
+  body .dth-btn-toggle-all{display:inline-flex;align-items:center;min-height:32px;padding:.3em .8em;white-space:nowrap}
+  body .cbt-btn{height:auto;min-height:var(--btn-min-h-sm);padding:.4em .9em;border-radius:999px;white-space:nowrap}
+  body .cbt-btn.btn-del{width:var(--btn-min-h-sm);padding:0;justify-content:center}
+  body #railClose{width:44px;height:44px;font-size:22px;display:inline-flex;align-items:center;justify-content:center}
+  .mine-limit-foot .btn-ghost{min-height:var(--btn-min-h-sm);padding:.5em .9em}
+  /* Card meta row: the edit control becomes a pill, display chips match the button chips. */
+  body #cMeta .typ-tag{line-height:36px}
+  body #btnEditBack.c-copy-tag{width:auto;min-width:36px;height:36px;padding:0 .8em !important;border-radius:999px !important;gap:4px}
+  /* Description buttons: title above the note, wrapping only between words. */
+  body .act-btn{flex-direction:column;align-items:flex-start;gap:2px;white-space:normal}
+  body .act-btn span,body .act-btn small{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;text-align:left}
+}
+/* 375px phones: four grade buttons need every pixel, so slightly tighter gutters keep the interval text 8px off the edges. */
+@media (max-width:390px){
+  body #scrSolve{padding-left:12px;padding-right:12px}
+  body #gradeBar,body #gradeBar.on{gap:6px}
 }
