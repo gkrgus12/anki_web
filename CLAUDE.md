@@ -1,27 +1,30 @@
 # 이 포크 작업 규칙
 
 ## 기본
-- 용도: 개인 프랑스어 단어 학습. 덱은 Anki .apkg에서 가져온 '불어 발음' 노트(Front/Back/Speak).
-- 주 사용 기기: iPhone Safari, iPhone Chrome(주소창 상단/하단 둘 다), Windows Chrome. 홈 화면 추가 모드 포함.
-- 코드를 고치기 전에 계획을 먼저 보여주고 사용자 승인을 받는다. 커밋은 기능 단위로 작게.
+- 주 사용 기기: iPhone Safari/Chrome(홈 화면 추가 모드 포함), Windows Chrome.
+- 코드를 고치기 전에 계획을 먼저 보여주고 승인을 받는다. 커밋은 기능 단위로 작게.
 - 작업이 끝나면 `node --test *.test.cjs`를 통과시키고, 새 로직에는 테스트를 추가한다.
 - 모듈을 추가하거나 수정하면 sien-app.js 버전 체크와 `?v=` 값을 빠짐없이 맞춘다.
 
-## 공유 영역: 친구와 함께 쓰는 스터디 룸 (절대 규칙)
-- 스터디 룸(Supabase, sien-study, sien-pokes, 네트워크 코드의 룸 관련 부분)은 친구 버전과 같은 서버와 데이터를 쓴다. 다음은 바꾸지 않는다:
+## 공유 백엔드 (절대 규칙)
+- 스터디 룸(Supabase, sien-study, sien-pokes, 네트워크 코드의 룸 관련 부분)은 원본 배포와 같은 서버와 데이터를 쓴다. 다음은 바꾸지 않는다:
   - Supabase URL/키, 테이블·컬럼, RPC, 보내는 데이터의 필드 이름과 형식
   - 학습량 집계 기준(무엇을 1회로 세는지), 하루 경계 Asia/Seoul 04:00
   - 찌르기, 리더보드, 주간 목표, 활동 타임라인의 동작
 - 변경이 스터디 룸으로 보내는 값에 영향을 줄 수 있으면, 구현 전에 멈추고 어떤 값이 어떻게 달라지는지 말한다.
   - 전송 경로: `scPushReviews`가 `state.log`의 채점 로그 `[cardId, ts, grade, extra]`를 기기별로 새 것만 보내고, `scDay`가 방 시간대 04:00 기준으로 날짜를 계산한다. 이 로그 형식과 extra 필드를 바꾸지 않는다.
 - 스터디 룸 UI(미니 배지, 알림 패널)는 모양만 손볼 수 있고, 표시하는 정보와 동작은 유지한다.
-- 개인 데이터(Gist 저널, LWW 필드, 전송 대기열, SM-2 카드 상태) 포맷도 바꾸지 않는다.
+- 저장 데이터(Gist 저널, LWW 필드, 전송 대기열, SM-2 카드 상태) 포맷도 바꾸지 않는다.
 
-## 친구 원본 업데이트를 계속 받기 위한 규칙
-- 원본 기준점은 `origin/main`이다(2026-10-19 기준 커밋 acfa8a6). 별도 upstream remote는 없다.
-- 수정은 새 파일(sien-mine.js, mine.css)에 모은다. 기존 파일에는 그 파일을 불러오는 줄과 viewport 메타 같은 최소한의 수정만 한다.
-- 기존 동작을 바꿔야 하면 기존 몽키패치 방식(전역 함수 감싸기)으로 덮어쓰고, 원본 코드는 그대로 둔다.
-- 작업이 끝나면 원본 대비 수정된 기존 파일과 줄 수를 보여준다: `git diff --stat origin/main -- . ':!sien-mine.js' ':!mine.css' ':!CLAUDE.md'`
+## 원본 업데이트를 계속 받기 위한 규칙
+- 원본 기준점은 `origin/main`이다. 별도 upstream remote는 없다.
+- 수정은 새 파일(sien-mine.js, mine.css, mine.test.cjs, manifest.webmanifest)에 모은다. 기존 파일에는 그 파일을 불러오는 줄과 `?v=` 값 같은 최소한의 수정만 한다.
+- 기존 동작을 바꿔야 하면 전역 함수를 감싸는 방식으로 덮어쓰고, 원본 코드는 그대로 둔다.
+- 작업이 끝나면 원본 대비 수정된 기존 파일과 줄 수를 보여준다: `git diff --stat origin/main -- . ':!sien-mine.js' ':!mine.css' ':!mine.test.cjs' ':!manifest.webmanifest' ':!CLAUDE.md'`
+
+## 검증
+- Playwright Chromium에 iPhone 프로필로 화면을 확인한다. `env()` 인셋은 `html:root{--sa-top:62px !important;--sa-bottom:34px !important}`를 주입하고, 홈 화면 앱은 `html.sien-standalone` 클래스를 붙여 재현한다.
+- 설정 페이지 제목을 다섯 번 두드리면 뷰포트·안전영역 진단 줄이 나온다. 실기기 확인은 그 줄의 스크린샷으로 한다.
 
 ## 참고
-- Speak 필드는 현재 apkg 가져오기에서 메모(note)로만 들어가며 `[sound:...]` 표기가 글자 그대로 남는다. 앱에 오디오 재생 코드는 없다.
+- Speak 필드는 apkg 가져오기에서 메모(note)로만 들어가며 `[sound:...]` 표기는 화면에서 숨긴다. 앱에 오디오 재생 코드는 없다.

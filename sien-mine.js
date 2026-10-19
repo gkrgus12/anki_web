@@ -222,23 +222,20 @@
       $('tabSetup')?.addEventListener('click',e=>{e.stopImmediatePropagation();if(settingsOpen()){settings.classList.remove('show','page');markTabs(document.querySelector('.scr.on')?.id);return;}btnSettings.click();},true);
       for(const id of ['setClose','setCloseX'])$(id)?.addEventListener('click',()=>setTimeout(()=>markTabs(document.querySelector('.scr.on')?.id),0));
     }
-    // Diagnostic line at the foot of the settings sheet: safe-area insets are read off a probe element
-    // because computed custom properties keep env() unresolved.
+    // Diagnostic line at the foot of the settings sheet, shown after five quick taps on the 설정 heading.
+    // Safe-area insets are read off a probe element because computed custom properties keep env() unresolved.
     const diagLine=settings?.querySelector('.sheet')?.appendChild(Object.assign(document.createElement('div'),{className:'mine-diag'}));
+    {let taps=0,last=0;settings?.querySelector('.sheet>h2')?.addEventListener('click',()=>{const now=Date.now();taps=now-last<600?taps+1:1;last=now;if(taps>=5){taps=0;diagLine?.classList.toggle('on');try{measure();}catch{}}});}
     const measure=()=>{
-      if(!diagLine)return;
+      if(!diagLine||!diagLine.classList.contains('on'))return;
       let saTop=NaN,saBottom=NaN;
       try{const p=document.createElement('div');p.style.cssText='position:fixed;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0';document.body.appendChild(p);const cs=getComputedStyle(p);saTop=parseFloat(cs.paddingTop);saBottom=parseFloat(cs.paddingBottom);p.remove();}catch{}
       const os=(navigator.userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/)||[]).slice(1).filter(Boolean).join('.');
       const version=(document.querySelector('script[src*="sien-mine.js"]')?.src.match(/[?&]v=([^&]+)/)||[])[1];
-      diagLine.textContent=diag({vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,gap:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewport-gap')),saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
+      diagLine.textContent=diag({vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,gap:innerHeight>innerWidth?(screen?.height||0)-innerHeight:0,saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
     };
     const mark=()=>{
-      const on=standalone(navigator,q=>matchMedia(q));document.documentElement.classList.toggle('sien-standalone',on);
-      // Screen height minus viewport height: 0 once iOS grants the full screen, ~60 while WebKit 301108 bites.
-      // Only the diagnostic line reads it now; the layout no longer subtracts it (it went stale after load).
-      const gap=on&&innerHeight>innerWidth?Math.max(0,(screen?.height||0)-innerHeight):0;
-      document.documentElement.style.setProperty('--viewport-gap',Math.round(gap)+'px');
+      document.documentElement.classList.toggle('sien-standalone',standalone(navigator,q=>matchMedia(q)));
       try{measure();}catch{}
     };
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}

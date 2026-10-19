@@ -97,14 +97,11 @@
 /* ── Safe areas on phones: content scrolls under the status bar and the bottom inset; only fixed bars sit
    on the insets. env() is wrapped in --sa-* so the layout can be verified with injected values. ── */
 @media (max-width:759px){
-  /* iOS 26 reported a 96pt bottom inset on iPhone 17 with nothing drawn there; the home indicator zone is 34pt. */
-  html:root{--sa-top:env(safe-area-inset-top);--sa-bottom:min(env(safe-area-inset-bottom),34px);--sat-extra:0px !important;
-    /* Kept as its own name so the bottom offset can be redefined in one place; it used to subtract the measured
-       viewport gap, which went stale once the min-height rule below made the viewport grow after load. */
-    --sa-bottom-eff:var(--sa-bottom)}
-  /* iOS 26 home-screen apps with viewport-fit=cover + black-translucent status bar lay out ~60pt (the status
-     bar) short of the screen (WebKit 301108). Asking for that height back is what makes bottom:0 reach the edge
-     (confirmed on iPhone 17, iOS 26.6.1, app installed from Chrome). */
+  /* env() wrapped in variables so the layout can be checked with injected values; the bottom inset is capped
+     at the 34px home-indicator zone (iOS has reported larger values with nothing drawn there). */
+  html:root{--sa-top:env(safe-area-inset-top);--sa-bottom:min(env(safe-area-inset-bottom),34px);--sat-extra:0px !important}
+  /* iOS 26 lays out a home-screen app (viewport-fit=cover + black-translucent status bar) one status bar short
+     of the screen (WebKit 301108); asking for the full height lets bottom:0 reach the edge. */
   html.sien-standalone{min-height:min(100lvh,calc(100% + env(safe-area-inset-top)))}
   /* The 설정 tab replaces the home gear. */
   body #btnSettingsP{display:none}
@@ -112,30 +109,28 @@
   body #main{padding-top:0;padding-bottom:0}
   /* Home */
   body #scrHome{padding-top:0}
-  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(62px + 8px + 16px + var(--sa-bottom-eff))}
+  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(62px + 8px + 16px + var(--sa-bottom))}
   body .home-head{padding-top:0}
   body #btnSettingsP{position:static}
   body .home-head > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
   body .home-head > div:last-child > *{order:2}
   body .home-head #btnSettingsP{order:1}
   body #btnUserAccount{white-space:nowrap}
-  /* Tab bar docked to the bottom edge, covering the home-indicator zone like a native tab bar. */
-  /* Floating pill (upstream look) just above the home indicator; content scrolls under it to the screen edge. */
-  body #tabBar{bottom:calc(8px + var(--sa-bottom-eff))}
+  /* Floating tab bar just above the home indicator; content scrolls under it to the screen edge. */
+  body #tabBar{bottom:calc(8px + var(--sa-bottom))}
   /* Sub screens (card browser, stats, study, sessions): head below the status bar, body scrolls to the very end. */
   body .sub-head{padding-top:calc(16px + var(--sa-top))}
-  body .sub-body{padding-bottom:calc(24px + var(--sa-bottom-eff))}
+  body .sub-body{padding-bottom:calc(24px + var(--sa-bottom))}
   /* Study: top bar below the status bar, grade buttons just above the bottom inset. */
   body #topbar{padding-top:calc(4px + var(--sa-top));height:auto;min-height:calc(48px + var(--sa-top))}
-  body #scrSolve{padding-top:4px;padding-bottom:var(--sa-bottom-eff)}
+  body #scrSolve{padding-top:4px;padding-bottom:var(--sa-bottom)}
   /* Long deck names: the name shrinks with an ellipsis instead of pushing the counter onto a second line. */
   body #tbSess{flex:1 1 0;min-width:0}
   body #tbCounts{flex:0 0 auto}
   /* Modals keep the upstream inset padding, minus the iPad-only 15px. */
 }
-/* Home-screen app: content scrolls under the status bar behind a soft fade of the page colour, and under the
-   floating tab bar to the very edge. Blurred strips with a hard edge were tried first; on iOS 26 the bottom one
-   rendered as a full-width band from the tab bar down, so there is no bottom strip at all now. */
+/* Home-screen app: a soft fade of the page colour under the status bar, nothing over the bottom inset.
+   (Blurred fixed strips render as hard-edged bands on iOS.) */
 @media (max-width:759px){
   html.sien-standalone #main::before{content:'';position:fixed;left:0;right:0;top:0;z-index:19;pointer-events:none;
     height:calc(var(--sa-top) + 24px);background:linear-gradient(to bottom,var(--c-bg) calc(100% - 32px),transparent)}
@@ -149,7 +144,7 @@
   body #scrStats .card-box:has(#statDeckSelector) > :last-child:not(div){flex:0 0 100%;text-align:right}
 }
 
-/* ── Buttons on phones: em padding, min-height instead of height, centered one-line labels (2026-10-19 audit). ── */
+/* ── Buttons on phones: em padding, min-height instead of height, centered one-line labels. ── */
 @media (max-width:759px){
   html:root{--btn-pad-y:.625em;--btn-pad-x:1em;--btn-min-h:44px;--btn-min-h-sm:36px;--btn-gap:8px}
   /* Theme segment and other segmented controls: one line per cell, type shrinks before it wraps. */
@@ -186,17 +181,17 @@
 
 /* ── Phones: no sideways panning, and the tab bar stays on the sub screens (card browser, stats, study). ── */
 @media (max-width:759px){
-  /* body's overflow:hidden must propagate to the viewport (html stays visible); an html overflow rule here made
-     iOS treat the document as scrollable, so swipes on the tab bar moved the page. */
+  /* body's overflow:hidden must propagate to the viewport, so html keeps overflow visible; otherwise iOS
+     treats the document itself as scrollable. */
   body{overflow:hidden}
   body #main,body .scr,body .sub-body,body .sub-inner{min-width:0;max-width:100%}
   body .sub-body{overflow-x:hidden}
-  /* A select is as wide as its longest option unless told otherwise; that is what pushed the card browser past the edge. */
+  /* A select is as wide as its longest option unless told otherwise. */
   body .sub-inner select{min-width:0;width:0;flex:1 1 0}
   body .sub-inner > div{min-width:0}
   /* The tab bar lives in #main now (moved by sien-mine.js), so it shows on every screen except study. */
   body #main:has(#scrSolve.on) #tabBar{display:none}
-  body .sub-body{padding-bottom:calc(62px + 8px + 20px + var(--sa-bottom-eff))}
+  body .sub-body{padding-bottom:calc(62px + 8px + 20px + var(--sa-bottom))}
 }
 
 /* ── iOS optical centering: with the system font, Hangul labels sit about 1px below the box centre.
@@ -226,12 +221,13 @@
 /* ── Settings as a page on phones (upstream's desktop page mode, switched on by sien-mine.js). ── */
 @media (max-width:759px){
   body #ovlSettings.page{left:0;padding:0}
-  body #ovlSettings.page .sheet{padding:calc(var(--sa-top) + 16px) var(--sp-m) calc(62px + 8px + 20px + var(--sa-bottom-eff))}
+  body #ovlSettings.page .sheet{padding:calc(var(--sa-top) + 16px) var(--sp-m) calc(62px + 8px + 20px + var(--sa-bottom))}
   body #ovlSettings.page::before{content:'';position:fixed;left:0;right:0;top:0;height:calc(var(--sa-top) + 24px);z-index:1;pointer-events:none;
     background:linear-gradient(to bottom,var(--c-bg) calc(100% - 32px),transparent)}
   /* Tab bar above the settings page, but below any modal opened from it. */
   body:has(#ovlSettings.show.page) #tabBar{z-index:61}
   body:has(.ovl.show:not(#ovlSettings)) #tabBar{z-index:20}
 }
-/* Viewport facts at the foot of the settings sheet; tap-select copies the whole line. */
-.mine-diag{margin-top:16px;font-size:12px;line-height:16px;color:var(--c-sec);text-align:center;word-break:keep-all;-webkit-user-select:all;user-select:all}
+/* Viewport facts at the foot of the settings sheet; hidden until the 설정 heading is tapped five times. */
+.mine-diag{display:none;margin-top:16px;font-size:12px;line-height:16px;color:var(--c-sec);text-align:center;word-break:keep-all;-webkit-user-select:all;user-select:all}
+.mine-diag.on{display:block}
