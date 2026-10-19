@@ -35,6 +35,11 @@
     if(opts.boost){const parts=[];if(opts.boost.new)parts.push('신규 +'+opts.boost.new);if(opts.boost.review)parts.push('복습 +'+opts.boost.review);if(parts.length)s+=', 오늘 '+parts.join(' · ');}
     return s;
   }
+  // Imported Anki notes carry [sound:file.mp3] markers the web app cannot play; hide them in the note box.
+  const SOUND=/\s*\[sound:[^\]]*\]/gi;
+  function stripSound(text){return String(text??'').replace(SOUND,'').trim();}
+  // Plain (non-plugin) cards are French on the front and Korean on the back.
+  function frontLang(card){return card?.sien?.v===1?null:'fr';}
   function queueGrew(before,after){const had=new Set(before||[]);return (after||[]).some(id=>!had.has(id));}
   // The only place limits are computed stays deckDailyPlan. While it runs, the deck it was
   // called for sees its today-only boost through getDeckOptions; every other caller
@@ -171,6 +176,24 @@
     g.renderDeckHub=function(){const r=origHub.apply(this,arguments);try{decorate();}catch(e){console.warn('[mine] 한도 패널을 그리지 못했습니다.',e);}return r;};
     if($('deckListArea')?.querySelector('.deck-tree-row'))try{decorate();}catch{}
     g.SienMine.boosts=()=>new Map(boosts);
+
+    // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
+    const origShow=g.showCard;
+    if(typeof origShow==='function')g.showCard=function(){
+      const r=origShow.apply(this,arguments);
+      try{const lang=frontLang(g.cur()),el=$('cFront');if(el&&lang)el.lang=lang;}catch{}
+      return r;
+    };
+    function cleanNote(){
+      const n=$('cNote');if(!n||!n.classList.contains('on'))return;
+      const walker=document.createTreeWalker(n,NodeFilter.SHOW_TEXT);let node,changed=false;
+      while((node=walker.nextNode())){if(SOUND.test(node.textContent)){node.textContent=stripSound(node.textContent);changed=true;}SOUND.lastIndex=0;}
+      if(changed&&!stripSound(n.textContent.replace(/^보충/,'')))n.classList.remove('on');
+    }
+    for(const name of ['fillBack','reveal']){
+      const orig=g[name];if(typeof orig!=='function')continue;
+      g[name]=function(){const r=orig.apply(this,arguments);try{cleanNote();}catch{}return r;};
+    }
   }
-  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,wrapPlanning,install};
+  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,wrapPlanning,install};
 });

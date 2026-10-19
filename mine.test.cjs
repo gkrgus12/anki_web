@@ -78,3 +78,12 @@ test('a deck session re-mixes only when its remaining queue gained cards',()=>{
  assert.equal(M.queueGrew(['a','b'],['a','b','n']),true);
  assert.equal(M.queueGrew([],['n']),true);assert.equal(M.queueGrew(undefined,[]),false);
 });
+test('Anki sound markers are hidden from notes; other text survives',()=>{
+ assert.equal(M.stripSound('[sound:fr_0001.mp3]'),'');
+ assert.equal(M.stripSound('청크: bonjour [sound:a.mp3] 상황: 인사'),'청크: bonjour 상황: 인사');
+ assert.equal(M.stripSound('[SOUND:x.ogg] [sound:y.mp3]'),'');
+ assert.equal(M.stripSound('보충 설명'),'보충 설명');assert.equal(M.stripSound(null),'');
+});
+test('plain cards are French on the front; plugin cards keep their own language',()=>{
+ assert.equal(M.frontLang({front:'bonjour'}),'fr');assert.equal(M.frontLang({sien:{v:1}}),null);assert.equal(M.frontLang(null),'fr');
+});
