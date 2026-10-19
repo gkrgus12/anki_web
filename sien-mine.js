@@ -191,8 +191,14 @@
       try{for(const [tab,screen]of [['tabToday','scrHome'],['tabCards','scrList'],['tabStats','scrStats']])$(tab)?.classList.toggle('on',id===screen);$('tabSetup')?.classList.remove('on');}catch{}
       return r;
     };
-    const mark=()=>document.documentElement.classList.toggle('sien-standalone',standalone(navigator,q=>matchMedia(q)));
+    const mark=()=>{
+      const on=standalone(navigator,q=>matchMedia(q));document.documentElement.classList.toggle('sien-standalone',on);
+      // iOS 26 keeps part of the screen below the web-app viewport; expose that gap so bottom bars do not pad twice.
+      const gap=on&&innerHeight>innerWidth?Math.max(0,(screen?.height||0)-innerHeight):0;
+      document.documentElement.style.setProperty('--viewport-gap',Math.round(gap)+'px');
+    };
     mark();try{matchMedia('(display-mode: standalone)').addEventListener('change',mark);}catch{}
+    addEventListener('resize',mark);addEventListener('orientationchange',mark);
 
     // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
     const origShow=g.showCard;

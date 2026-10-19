@@ -98,12 +98,18 @@
    on the insets. env() is wrapped in --sa-* so the layout can be verified with injected values. ── */
 @media (max-width:759px){
   /* iOS 26 reported a 96pt bottom inset on iPhone 17 with nothing drawn there; the home indicator zone is 34pt. */
-  html:root{--sa-top:env(safe-area-inset-top);--sa-bottom:min(env(safe-area-inset-bottom),34px);--sat-extra:0px !important}
+  html:root{--sa-top:env(safe-area-inset-top);--sa-bottom:min(env(safe-area-inset-bottom),34px);--sat-extra:0px !important;
+    /* iOS 26 (iPhone 17) ends the web-app viewport ~60pt above the screen edge; sien-mine.js measures that gap
+       (screen height - viewport height) so bottom bars do not pad twice. */
+    --sa-bottom-eff:max(calc(var(--sa-bottom) - var(--viewport-gap,0px)),0px)}
+  /* The area iOS leaves below the viewport is painted with the document background: match the docked tab bar. */
+  html.sien-standalone{background:var(--c-card)}
+  html.sien-standalone:has(#scrSolve.on){background:var(--c-bg)}
   body{padding-top:0;padding-bottom:0}
   body #main{padding-top:0;padding-bottom:0}
   /* Home */
   body #scrHome{padding-top:0}
-  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(66px + 16px + var(--sa-bottom))}
+  body #scrHome .home-inner{padding-top:calc(var(--sa-top) + 6px);padding-bottom:calc(66px + 16px + var(--sa-bottom-eff))}
   body .home-head{padding-top:0}
   body #btnSettingsP{position:static}
   body .home-head > div:last-child{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
@@ -111,13 +117,16 @@
   body .home-head #btnSettingsP{order:1}
   body #btnUserAccount{white-space:nowrap}
   /* Tab bar docked to the bottom edge, covering the home-indicator zone like a native tab bar. */
-  body #tabBar{left:0;right:0;bottom:0;height:auto;border-radius:22px 22px 0 0;padding:6px 10px calc(6px + var(--sa-bottom));box-shadow:0 -.5px 0 var(--c-glass-ring)}
+  body #tabBar{left:0;right:0;bottom:0;height:auto;border-radius:22px 22px 0 0;padding:6px 10px calc(6px + var(--sa-bottom-eff));background:var(--c-card);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 -.5px 0 var(--c-sep)}
   /* Sub screens (card browser, stats, study, sessions): head below the status bar, body scrolls to the very end. */
   body .sub-head{padding-top:calc(16px + var(--sa-top))}
-  body .sub-body{padding-bottom:calc(24px + var(--sa-bottom))}
+  body .sub-body{padding-bottom:calc(24px + var(--sa-bottom-eff))}
   /* Study: top bar below the status bar, grade buttons just above the bottom inset. */
   body #topbar{padding-top:calc(4px + var(--sa-top));height:auto;min-height:calc(48px + var(--sa-top))}
-  body #scrSolve{padding-top:4px;padding-bottom:var(--sa-bottom)}
+  body #scrSolve{padding-top:4px;padding-bottom:var(--sa-bottom-eff)}
+  /* Long deck names: the name shrinks with an ellipsis instead of pushing the counter onto a second line. */
+  body #tbSess{flex:1 1 0;min-width:0}
+  body #tbCounts{flex:0 0 auto}
   /* Modals keep the upstream inset padding, minus the iPad-only 15px. */
 }
 /* Home-screen app: blurred strips over both insets so scrolled content reads as a native bar, not a cut. */
@@ -125,7 +134,7 @@
   html.sien-standalone #main::before,html.sien-standalone #main::after{content:'';position:fixed;left:0;right:0;z-index:19;pointer-events:none;
     background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
   html.sien-standalone #main::before{top:0;height:var(--sa-top)}
-  html.sien-standalone #main::after{bottom:0;height:var(--sa-bottom)}
+  html.sien-standalone #main::after{bottom:0;height:var(--sa-bottom-eff)}
   html.sien-standalone #main:has(#scrSolve.on)::before{display:none}   /* the study top bar is in flow under the status bar already */
   html.sien-standalone #main:not(:has(#scrSolve.on))::after{display:none}   /* the docked tab bar covers the bottom inset */
 }
@@ -182,23 +191,29 @@
   body .sub-inner > div{min-width:0}
   /* The tab bar lives in #main now (moved by sien-mine.js), so it shows on every screen except study. */
   body #main:has(#scrSolve.on) #tabBar{display:none}
-  body .sub-body{padding-bottom:calc(66px + 20px + var(--sa-bottom))}
+  body .sub-body{padding-bottom:calc(66px + 20px + var(--sa-bottom-eff))}
 }
 
 /* ── iOS optical centering: with the system font, Hangul labels sit about 1px below the box centre.
-   One tunable nudge, applied only where WebKit on iOS runs (no effect in Chromium or on desktop). ── */
+   One tunable nudge (--ios-nudge), WebKit on iOS only. Each group sets both paddings so the content box
+   moves up by the nudge; min-height keeps the control the same height. ── */
 @supports (-webkit-touch-callout: none){
   @media (max-width:759px){
-    html:root{--ios-nudge:1px}
-    /* flex-centred controls: a little extra bottom padding lifts the content box */
-    body .tab,body .gbtn,body #revealBtn,body .hero-go,body .deck-act-btn,body .deck-btn-study,body .account-btn,body .cbt-btn,body .ft-chip,body .hint-chip,
-    body #themeSeg button,body .seg button,body #ovlSettings .h-tools .h-tool,body #ovlDeckOptions .btn-ghost,body #ovlDeckOptions .btn-primary,
-    body #filterChipsRow .filter-chip,body .sheet .ac-badge,body .sub-head .ac-badge,body .mine-step-btn,body .mine-limit-foot .btn-ghost,body .act-btn,body .tb-btn,body .gear{padding-bottom:calc(var(--ios-nudge) * 2) !important}
-    body .tab{padding-bottom:calc(var(--ios-nudge) * 2)}
+    html:root{--ios-nudge:1px;--n2:calc(var(--ios-nudge) * 2)}
+    /* no vertical padding upstream: fixed/min height with flex centring */
+    body .tab,body #gradeBar .gbtn,body #revealBtn,body .hero-go,body .ft-chip,body .hint-chip,body .tb-btn,body .gear,body .mine-step-btn,body .deck-btn-opt,body .c-copy-btn,body .c-copy-tag{padding-top:0;padding-bottom:var(--n2)}
+    /* min-height 44 buttons: any symmetric pair works, so 6px ± nudge */
+    body .deck-act-btn,body .deck-btn-study,body #listTools button,body #ovlDeckOptions .btn-ghost,body #ovlDeckOptions .btn-primary,body #ovlSettings .h-tools .h-tool,body #ovlSettings .btn-ghost,body #studyBody .btn-ghost{min-height:44px;padding-top:calc(6px - var(--ios-nudge)) !important;padding-bottom:calc(6px + var(--ios-nudge)) !important}
+    body #themeSeg button,body .seg button{padding-top:calc(.625em - var(--ios-nudge));padding-bottom:calc(.625em + var(--ios-nudge))}
+    body #filterChipsRow .filter-chip{padding-top:calc(.45em - var(--ios-nudge)) !important;padding-bottom:calc(.45em + var(--ios-nudge)) !important}
+    body .sheet .ac-badge,body .sub-head .ac-badge{padding-top:calc(.25em - var(--ios-nudge));padding-bottom:calc(.25em + var(--ios-nudge))}
+    body .cbt-btn{padding-top:calc(.4em - var(--ios-nudge));padding-bottom:calc(.4em + var(--ios-nudge))}
+    body .mine-limit-foot .btn-ghost{padding-top:calc(.5em - var(--ios-nudge));padding-bottom:calc(.5em + var(--ios-nudge))}
+    body .act-btn{padding-top:calc(10px - var(--ios-nudge));padding-bottom:calc(10px + var(--ios-nudge))}
+    body .account-btn{padding-top:calc(6px - var(--ios-nudge));padding-bottom:calc(6px + var(--ios-nudge))}
     /* line-height-centred chips: keep the height, move the baseline up */
-    body #cMeta .typ-tag{line-height:calc(36px - var(--ios-nudge) * 2);padding-bottom:calc(var(--ios-nudge) * 2)}
-    /* native selects and inputs */
-    body .sub-inner select,body .sheet select{padding-top:.5em !important;padding-bottom:calc(.5em + var(--ios-nudge) * 2) !important}
-    body .sub-inner input[type=text],body .sub-inner input[type=search]{padding-bottom:calc(.5em + var(--ios-nudge) * 2)}
+    body #cMeta .typ-tag{line-height:calc(36px - var(--n2));padding-bottom:var(--n2)}
+    /* native selects sat about 2px low */
+    body .sub-inner select,body .sheet select{padding-top:calc(.5em - var(--n2)) !important;padding-bottom:calc(.5em + var(--n2)) !important}
   }
 }
