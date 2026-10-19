@@ -17876,6 +17876,7 @@ function initUniversalImporter(){
             id: 'anki_' + item.cid,
             q, a, front: q, back: a,
             note,
+            tags: String(item.tags || '').trim().split(/\s+/).filter(Boolean),
             deckName,
             did: item.did,
             isNew,
@@ -17993,6 +17994,7 @@ function initUniversalImporter(){
       const newCardObjs = [];
       let reviewCardCount = 0;
       let todayDueCount = 0;
+      let keptCount = 0;
 
       parsedCardsCache.forEach(c => {
         const dName = c.deckName || 'Anki 덱';
@@ -18018,6 +18020,7 @@ function initUniversalImporter(){
           back: c.back,
           typ: '단답',
           note: c.note || '',
+          tags: c.tags || [],
           subj: dName,
           unit: dName,
           deckId: targetDeck.id
@@ -18025,7 +18028,8 @@ function initUniversalImporter(){
         newCardObjs.push(cardObj);
 
         // 복습 진도 복원 (keepSchedule 활성화 시)
-        if(keepSchedule && c.fsrsState){
+        if(keepSchedule && c.fsrsState && state.cards[c.id]?.fsrs){ keptCount++; }   // 이 앱에서 이미 공부한 카드 — 패키지 진도로 덮지 않는다
+        else if(keepSchedule && c.fsrsState){
           reviewCardCount++;
           if(c.daysUntilDue <= 0) todayDueCount++;
           state.cards[c.id] = {
@@ -18075,7 +18079,7 @@ function initUniversalImporter(){
 
       $('ovlImport').classList.remove('show');
       if(keepSchedule){
-        toast(`${newCardObjs.length}장의 카드와 복습 진도를 완벽히 가져왔어요! (복습 카드 ${reviewCardCount}장 / 오늘 대기 ${todayDueCount}장)`);
+        toast(`${newCardObjs.length}장의 카드와 복습 진도를 완벽히 가져왔어요! (복습 카드 ${reviewCardCount}장 / 오늘 대기 ${todayDueCount}장)` + (keptCount ? ` · 이미 공부한 ${keptCount}장은 기존 진도 유지` : ''));
       } else {
         toast(`${newCardObjs.length}장의 카드를 신규 카드로 등록했어요.`);
       }
