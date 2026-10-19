@@ -18001,7 +18001,7 @@ function initUniversalImporter(){
         let targetDeck = deckNameToDeck.get(dName);
         if(!targetDeck){
           targetDeck = {
-            id: 'deck_anki_' + (c.did || Date.now() + '_' + Math.random().toString(36).substr(2, 4)),
+            id: 'deck_anki_' + (c.did || Math.random().toString(36).substr(2, 4)) + '_' + Date.now().toString(36),   // 매번 새 id — 지워진 덱 id는 동기화 병합에서 영구히 걸러진다
             name: dName,
             desc: 'Anki에서 가져온 덱',
             createdAt: Date.now()

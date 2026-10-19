@@ -78,6 +78,7 @@
   function diag(m){
     const n=v=>Number.isFinite(v)?String(Math.round(v)):'?';
     const parts=[`뷰포트 ${n(m.vw)}×${n(m.vh)}`,`화면 ${n(m.sw)}×${n(m.sh)}`,`문서 ${n(m.docH)}`,`간격 ${n(m.gap)}`,`안전영역 위 ${n(m.saTop)} 아래 ${n(m.saBottom)}`,m.standalone?'홈 화면 앱':'브라우저'];
+    if(m.decks!==undefined)parts.push(`덱 ${n(m.decks)} · 끊긴 덱 참조 ${n(m.orphans)}`);
     if(m.os)parts.push(m.os);if(m.version)parts.push('v'+m.version);
     return parts.join(' · ');
   }
@@ -223,7 +224,8 @@
       try{const p=document.createElement('div');p.style.cssText='position:fixed;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0';document.body.appendChild(p);const cs=getComputedStyle(p);saTop=parseFloat(cs.paddingTop);saBottom=parseFloat(cs.paddingBottom);p.remove();}catch{}
       const os=(navigator.userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/)||[]).slice(1).filter(Boolean).join('.');
       const version=(document.querySelector('script[src*="sien-mine.js"]')?.src.match(/[?&]v=([^&]+)/)||[])[1];
-      diagLine.textContent=diag({vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,gap:innerHeight>innerWidth?(screen?.height||0)-innerHeight:0,saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
+      let decks,orphans;try{const ids=new Set(DECKS.map(d=>d?.id));decks=DECKS.length;orphans=new Set(DATA.map(c=>c?.deckId).filter(id=>id&&!ids.has(id))).size;}catch{}
+      diagLine.textContent=diag({decks,orphans,vw:innerWidth,vh:innerHeight,sw:screen?.width,sh:screen?.height,docH:document.documentElement.getBoundingClientRect().height,gap:innerHeight>innerWidth?(screen?.height||0)-innerHeight:0,saTop,saBottom,standalone:standalone(navigator,q=>matchMedia(q)),os:os?'iOS '+os:'',version});
     };
     const mark=()=>{
       document.documentElement.classList.toggle('sien-standalone',standalone(navigator,q=>matchMedia(q)));

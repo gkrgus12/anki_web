@@ -93,8 +93,8 @@ test('standalone detection matches upstream: navigator flag or display-mode quer
  assert.equal(M.standalone({},()=>({matches:false})),false);assert.equal(M.standalone(undefined,undefined),false);
 });
 test('diagnostic line prints every measurement, marks unknowns, and omits absent extras',()=>{
- assert.equal(M.diag({vw:402,vh:874,sw:402,sh:874,docH:874,gap:0,saTop:59,saBottom:34,standalone:true,os:'iOS 26.6.1',version:'20261019-34'}),
-  '뷰포트 402×874 · 화면 402×874 · 문서 874 · 간격 0 · 안전영역 위 59 아래 34 · 홈 화면 앱 · iOS 26.6.1 · v20261019-34');
+ assert.equal(M.diag({vw:402,vh:874,sw:402,sh:874,docH:874,gap:0,saTop:59,saBottom:34,standalone:true,os:'iOS 26.6.1',version:'20261019-34',decks:13,orphans:0}),
+  '뷰포트 402×874 · 화면 402×874 · 문서 874 · 간격 0 · 안전영역 위 59 아래 34 · 홈 화면 앱 · 덱 13 · 끊긴 덱 참조 0 · iOS 26.6.1 · v20261019-34');
  assert.equal(M.diag({vw:1280,vh:999.6,sw:1280,sh:1000,docH:1000,gap:NaN,saTop:NaN,saBottom:undefined,standalone:false,os:'',version:undefined}),
   '뷰포트 1280×1000 · 화면 1280×1000 · 문서 1000 · 간격 ? · 안전영역 위 ? 아래 ? · 브라우저');
 });
@@ -151,4 +151,16 @@ test('quick off/restore targets: none, one, hundreds, and a result where some ca
  const mixed=['c1','c2','c3','c4','c5'].map(id=>({id}));
  assert.deepEqual(M.quickTargets(mixed,'retire',isOff).map(c=>c.id),['c1','c3','c4']);
  assert.deepEqual(M.quickTargets(mixed,'restore',isOff).map(c=>c.id),['c2','c5']);
+});
+
+// The shared journal treats a deck deletion as permanent for that id (sien-study merge), so an import that
+// reuses a deleted id loses the deck at the next merge; a fresh id survives. Guards the importer's id choice.
+test('journal merge: a deleted deck id never comes back, a fresh id for the same name does',()=>{
+ const S=require('./sien-study');
+ const base={version:1,appearance:{theme:'paper',light:'paper'},cards:[],decks:[{id:'parent',name:'불어'}],state:{cards:{},log:[]}};
+ const ev=(id,at,change)=>({id,at,change});
+ const docs=[{schema:1,kind:'journal',deviceId:'pc',sequence:0,events:[
+  ev('e1',100,{decks:[{id:'deck_anki_7',name:'불어::03'}]}),ev('e2',200,{deletedDecks:['deck_anki_7']}),
+  ev('e3',300,{decks:[{id:'deck_anki_7',name:'불어::03'}]}),ev('e4',400,{decks:[{id:'deck_anki_7_x1',name:'불어::03'}]})]}];
+ assert.deepEqual(S.merge(base,docs).payload.decks.map(d=>d.id),['parent','deck_anki_7_x1']);
 });
