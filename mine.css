@@ -120,7 +120,7 @@
   body .home-head #btnSettingsP{order:1}
   body #btnUserAccount{white-space:nowrap}
   /* Tab bar docked to the bottom edge, covering the home-indicator zone like a native tab bar. */
-  /* Floating pill (upstream look) just above the home indicator; the strip below it is blurred in the home-screen app. */
+  /* Floating pill (upstream look) just above the home indicator; content scrolls under it to the screen edge. */
   body #tabBar{bottom:calc(8px + var(--sa-bottom-eff))}
   /* Sub screens (card browser, stats, study, sessions): head below the status bar, body scrolls to the very end. */
   body .sub-head{padding-top:calc(16px + var(--sa-top))}
@@ -133,12 +133,12 @@
   body #tbCounts{flex:0 0 auto}
   /* Modals keep the upstream inset padding, minus the iPad-only 15px. */
 }
-/* Home-screen app: blurred strips over both insets so scrolled content reads as a native bar, not a cut. */
+/* Home-screen app: content scrolls under the status bar behind a soft fade of the page colour, and under the
+   floating tab bar to the very edge. Blurred strips with a hard edge were tried first; on iOS 26 the bottom one
+   rendered as a full-width band from the tab bar down, so there is no bottom strip at all now. */
 @media (max-width:759px){
-  html.sien-standalone #main::before,html.sien-standalone #main::after{content:'';position:fixed;left:0;right:0;z-index:19;pointer-events:none;
-    background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
-  html.sien-standalone #main::before{top:0;height:var(--sa-top)}
-  html.sien-standalone #main::after{bottom:0;height:var(--sa-bottom-eff)}
+  html.sien-standalone #main::before{content:'';position:fixed;left:0;right:0;top:0;z-index:19;pointer-events:none;
+    height:calc(var(--sa-top) + 24px);background:linear-gradient(to bottom,var(--c-bg) calc(100% - 32px),transparent)}
   html.sien-standalone #main:has(#scrSolve.on)::before{display:none}   /* the study top bar is in flow under the status bar already */
 }
 /* Sheet badges (Gist 연동 · 동기화 켜짐 · 로컬 전용): the deck-count badge rule removed their side padding. */
@@ -227,8 +227,8 @@
 @media (max-width:759px){
   body #ovlSettings.page{left:0;padding:0}
   body #ovlSettings.page .sheet{padding:calc(var(--sa-top) + 16px) var(--sp-m) calc(62px + 8px + 20px + var(--sa-bottom-eff))}
-  body #ovlSettings.page::before{content:'';position:fixed;left:0;right:0;top:0;height:var(--sa-top);z-index:1;pointer-events:none;
-    background:var(--c-glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+  body #ovlSettings.page::before{content:'';position:fixed;left:0;right:0;top:0;height:calc(var(--sa-top) + 24px);z-index:1;pointer-events:none;
+    background:linear-gradient(to bottom,var(--c-bg) calc(100% - 32px),transparent)}
   /* Tab bar above the settings page, but below any modal opened from it. */
   body:has(#ovlSettings.show.page) #tabBar{z-index:61}
   body:has(.ovl.show:not(#ovlSettings)) #tabBar{z-index:20}

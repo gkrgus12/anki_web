@@ -22,7 +22,7 @@
 ## 3. safe-area와 홈 화면 앱
 
 - 원본은 `body`에 네 방향 `env()` 패딩을 두었다. 그러면 스크롤 영역이 인셋 위에서 끝나 **빈 띠**가 생기고 "잘린" 것처럼 보인다. 폰에서는 body·#main 패딩을 0으로 하고, 각 스크롤 컨테이너(`.home-inner`, `.sub-body`, 설정 시트) 안쪽 패딩으로 옮긴다. 고정 요소(탭 막대, 채점 버튼)만 인셋 위에 둔다.
-- 홈 화면 앱에서는 인셋 자리에 `#main::before/::after`로 블러 띠(`backdrop-filter`)를 깔아 네이티브 바처럼 보이게 한다. 풀이 화면은 상단바가 흐름 안에 있으므로 위 띠를 끈다.
+- 인셋 자리의 띠: 처음엔 `#main::before/::after`에 `backdrop-filter` 블러 띠를 깔았는데, 실기기(iOS 26)에서 **아래 띠가 탭 막대 윗선부터 화면 끝까지 전체 폭의 블록으로 그려졌고** 위 띠는 경계선이 칼같이 보였다(Chromium에선 34pt 띠로만 보여 재현 안 됨). 지금은 아래 띠를 없애 내용이 탭 막대 밑으로 화면 끝까지 흐르고, 위는 블러 없이 페이지 배경색 그라데이션(`linear-gradient(to bottom, var(--c-bg) calc(100% - 32px), transparent)`, 높이 `--sa-top + 24px`)만 둔다. 풀이 화면은 상단바가 흐름 안에 있으므로 위 띠를 끈다. 교훈: 홈 화면 앱에서 `backdrop-filter` 고정 띠는 피하고, 배경색 페이드로 충분하다.
 - 원본의 홈 화면 앱용 `--sat-extra: 15px`(아이패드 iOS 27 블러 겹침 실측값)는 iPhone에서 불필요 → `!important`로 0.
 - **iOS 26 버그 (WebKit 301108)**: `viewport-fit=cover` + `apple-mobile-web-app-status-bar-style=black-translucent`인 홈 화면 앱은 뷰포트가 화면보다 **상태바 높이(약 60pt)만큼 짧다**. `100%`·`vh`·`dvh`가 전부 짧은 값을 주고, `position:fixed; bottom:0`도 그 위에서 멈춘다. 대응 두 겹:
   1. `html.sien-standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}` — frappe-ui가 iOS 26.2 시뮬레이터에서 `innerHeight` 812→874로 확인한 처방.
