@@ -164,3 +164,16 @@ test('journal merge: a deleted deck id never comes back, a fresh id for the same
   ev('e3',300,{decks:[{id:'deck_anki_7',name:'불어::03'}]}),ev('e4',400,{decks:[{id:'deck_anki_7_x1',name:'불어::03'}]})]}];
  assert.deepEqual(S.merge(base,docs).payload.decks.map(d=>d.id),['parent','deck_anki_7_x1']);
 });
+
+test('cloze toggles: default hides only the card number on the front, nothing on the back; each occurrence toggles alone',()=>{
+ const t='{{c1::Je}} {{c2::te}} vois, {{c1::je}} sais.';
+ assert.deepEqual([...M.clozeHidden(t,1,'f')],[0,2]);assert.deepEqual([...M.clozeHidden(t,2,'f')],[1]);assert.deepEqual([...M.clozeHidden(t,1,'b')],[]);
+ const view=h=>M.clozeView(t,1,h).filter(s=>s.k!=='text').map(s=>s.k[0]+s.i+':'+s.s);
+ assert.deepEqual(view(M.clozeHidden(t,1,'f')),['b0:[...]','o1:te','b2:[...]']);
+ const h=M.clozeHidden(t,1,'f');h.delete(0);assert.deepEqual(view(h),['a0:Je','o1:te','b2:[...]'],'one blank peeked, the other stays');
+ h.add(0);h.add(1);assert.deepEqual(view(h),['b0:[...]','b1:[...]','b2:[...]'],'another number can be hidden too');
+ assert.deepEqual([...M.clozeOccurrences(t)],[0,1,2]);assert.deepEqual(view(M.clozeOccurrences(t)),['b0:[...]','b1:[...]','b2:[...]']);
+ assert.deepEqual(view(new Set()),['a0:Je','o1:te','a2:je']);
+ assert.deepEqual(M.clozeView('{{c1::toi::대명사}} là',1,new Set([0]))[0],{s:'[대명사]',k:'blank',i:0,n:1});
+ assert.deepEqual(M.clozeView('plain',1,new Set()),[{s:'plain',k:'text'}]);
+});

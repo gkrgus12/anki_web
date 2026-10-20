@@ -58,6 +58,16 @@
     return clozeParts(text).map(p=>p.t==='text'?{s:p.s,k:'text'}:p.n!==n?{s:p.ans,k:'text'}:side==='f'?{s:'['+(p.hint||'...')+']',k:'blank'}:{s:p.ans,k:'answer'});
   }
   function stripCloze(text){return clozeParts(text).map(p=>p.t==='text'?p.s:p.ans).join('');}
+  // Per-occurrence view for the tappable card: `hidden` holds the occurrence indexes shown as blanks.
+  // Kinds: text, blank, answer (the card's own number, revealed) and other (another number, revealed).
+  function clozeView(text,n,hidden){
+    let i=0;
+    return clozeParts(text).map(p=>{if(p.t==='text')return {s:p.s,k:'text'};const idx=i++;
+      return hidden.has(idx)?{s:'['+(p.hint||'...')+']',k:'blank',i:idx,n:p.n}:{s:p.ans,k:p.n===n?'answer':'other',i:idx,n:p.n};});
+  }
+  function clozeOccurrences(text,only){const out=new Set();let i=0;for(const p of clozeParts(text))if(p.t==='cloze'){if(only===undefined||p.n===only)out.add(i);i++;}return out;}
+  // Anki's default: the question hides the card's own number, the answer side hides nothing.
+  function clozeHidden(text,n,side){return side==='f'?clozeOccurrences(text,n):new Set();}
   function clozeAnswers(text,n){return clozeParts(text).filter(p=>p.t==='cloze'&&p.n===n).map(p=>p.ans);}
   // Card browser bulk selection: ids in result order, a Shift+click range, the inverse, and the targets of the
   // "all results" shortcuts (retire only cards still on, restore only cards that are off).
@@ -296,14 +306,31 @@
     }
 
     // lang=fr on the question so Safari hyphenates, quotes and reads it as French; plugin cards keep SienRender's lang.
-    // Cloze cards: the front shows the current blank, the revealed side fills it in the accent colour.
+    // Cloze cards: every blank is a toggle (tap to peek, tap to hide), with 전체 가리기 / 전부 보이기 chips
+    // under the sentence. The question starts with the card's own number hidden; 정답 보기 shows everything.
     const allCards=()=>{try{return DATA;}catch{return [];}};
-    let cloze=null;   // {id, n, text} for the card on screen
+    let cloze=null;   // {id, n, text, hidden:Set} for the card on screen
+    const CLS={blank:'mine-cloze-blank',answer:'mine-cloze',other:'mine-cloze-other'};
     function paintCloze(el,segs){
       el.textContent='';
       for(const seg of segs){if(seg.k==='text'){el.appendChild(document.createTextNode(seg.s));continue;}
-        const span=document.createElement('span');span.className=seg.k==='blank'?'mine-cloze-blank':'mine-cloze';span.textContent=seg.s;el.appendChild(span);}
+        const span=document.createElement('span');span.className=CLS[seg.k];span.textContent=seg.s;
+        if(seg.i!==undefined){span.dataset.i=seg.i;span.setAttribute('role','button');span.title=seg.k==='blank'?'눌러서 열기':'눌러서 가리기';}
+        el.appendChild(span);}
     }
+    function repaintCloze(){if(cloze)paintCloze($('cFront'),clozeView(cloze.text,cloze.n,cloze.hidden));}
+    $('cFront')?.addEventListener('click',e=>{
+      const span=e.target.closest?.('[data-i]');if(!span||!cloze||!$('cFront').contains(span))return;
+      e.stopPropagation();e.preventDefault();
+      const i=Number(span.dataset.i);if(cloze.hidden.has(i))cloze.hidden.delete(i);else cloze.hidden.add(i);repaintCloze();
+    });
+    const clozeBar=document.createElement('div');clozeBar.className='mine-cloze-bar';clozeBar.hidden=true;
+    for(const [label,all]of [['전체 가리기',true],['전부 보이기',false]]){
+      const b=document.createElement('button');b.type='button';b.className='hint-chip';b.textContent=label;
+      b.onclick=e=>{e.stopPropagation();e.preventDefault();if(!cloze)return;cloze.hidden=all?clozeOccurrences(cloze.text):new Set();repaintCloze();};
+      clozeBar.append(b);
+    }
+    $('cFront')?.after(clozeBar);
     function clozeBack(c){
       if(!cloze||cloze.id!==c?.id||String(c.back||c.a||'').trim())return;
       const el=$('cBack');if(!el||el.style.display==='none')return;
@@ -316,9 +343,11 @@
       try{
         const c=g.cur(),el=$('cFront');cloze=null;
         if(c&&c.sien?.v!==1&&el&&clozeNumbers(el.textContent).length){
-          cloze={id:c.id,n:clozeOrdinal({...c,front:el.textContent},allCards().map(x=>x===c?{...x,front:el.textContent}:x)),text:el.textContent};
-          paintCloze(el,renderCloze(cloze.text,cloze.n,'f'));
+          const text=el.textContent,n=clozeOrdinal({...c,front:text},allCards().map(x=>x===c?{...x,front:text}:x));
+          cloze={id:c.id,n,text,hidden:clozeHidden(text,n,'f')};
+          repaintCloze();
         }
+        clozeBar.hidden=!cloze;
       }catch{}
       return r;
     };
@@ -344,10 +373,10 @@
       g[name]=function(){
         const r=orig.apply(this,arguments);
         try{cleanNote();}catch{}
-        try{const c=g.cur();clozeBack(c);if(name==='reveal'&&cloze&&cloze.id===c?.id)paintCloze($('cFront'),renderCloze(cloze.text,cloze.n,'b'));}catch{}
+        try{const c=g.cur();clozeBack(c);if(name==='reveal'&&cloze&&cloze.id===c?.id){cloze.hidden=clozeHidden(cloze.text,cloze.n,'b');repaintCloze();}}catch{}
         return r;
       };
     }
   }
-  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,clozeNumbers,renderCloze,stripCloze,clozeAnswers,clozeOrdinal,rangeIds,invertIds,quickTargets,wrapPlanning,install};
+  return {MAX,STEP,BOOST,clampLimit,normalizeBoost,effective,summary,queueGrew,stripSound,frontLang,standalone,diag,clozeNumbers,renderCloze,stripCloze,clozeAnswers,clozeOrdinal,clozeView,clozeHidden,clozeOccurrences,rangeIds,invertIds,quickTargets,wrapPlanning,install};
 });
